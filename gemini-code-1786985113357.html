@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Web-Desktop</title>
+    <style>
+        :root {
+            --desktop-bg: #0f172a;
+            --window-bg: #1e293b;
+            --window-header: #334155;
+            --accent: #3b82f6;
+            --text: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--desktop-bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.5s;
+        }
+
+        /* Desktop Icons */
+        .desktop { padding: 20px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start; }
+        .icon { width: 80px; text-align: center; cursor: pointer; padding: 10px; border-radius: 8px; }
+        .icon:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .icon-emoji { font-size: 2.5rem; margin-bottom: 5px; }
+        .icon-text { font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+
+        /* Fenster Styles */
+        .window {
+            position: absolute;
+            background-color: var(--window-bg);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #475569;
+            display: none; 
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .window-header {
+            background-color: var(--window-header);
+            padding: 10px 15px;
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            height: 40px;
+        }
+
+        .window-header:active { cursor: grabbing; }
+
+        .window-controls button {
+            background: none; border: none; color: var(--text); font-size: 1.2rem; cursor: pointer; margin-left: 10px; border-radius: 50%; width: 24px; height: 24px;
+        }
+        .window-controls button:hover { background-color: rgba(255, 255, 255, 0.2); }
+        .window-controls .close-btn:hover { background-color: #ef4444; }
+
+        /* Der iFrame für die Notizen */
+        iframe {
+            width: 100%;
+            height: calc(100% - 40px); /* Fensterhöhe abzüglich Kopfzeile */
+            border: none;
+            background-color: #1e293b;
+        }
+
+        .window-content { padding: 15px; user-select: text; }
+
+        /* Taskleiste */
+        .taskbar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 40px;
+            background-color: rgba(15, 23, 42, 0.9); border-top: 1px solid #334155;
+            display: flex; align-items: center; padding: 0 10px; z-index: 9999;
+        }
+        .taskbar-item {
+            padding: 5px 15px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; margin-right: 10px; cursor: pointer; font-size: 0.9rem;
+        }
+        .taskbar-item:hover { background-color: rgba(255, 255, 255, 0.2); }
+
+        /* Einstellungen-Styles */
+        select, button.btn { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #475569; background-color: #0f172a; color: white; margin-top: 5px; }
+        button.btn-danger { background-color: #ef4444; cursor: pointer; margin-top: 15px; font-weight: bold; border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="desktop">
+        <div class="icon" onclick="openWindow('notesApp')">
+            <div class="icon-emoji">📝</div>
+            <div class="icon-text">Notizen</div>
+        </div>
+        <div class="icon" onclick="openWindow('settingsApp')">
+            <div class="icon-emoji">⚙️</div>
+            <div class="icon-text">System</div>
+        </div>
+    </div>
+
+    <!-- Fenster 1: Notizen (Lädt die notizen.html via iframe) -->
+    <div class="window" id="notesApp" style="top: 50px; left: 100px; width: 450px; height: 550px;">
+        <div class="window-header" id="notesAppHeader">
+            <span>📝 Meine Notizen</span>
+            <div class="window-controls">
+                <button class="close-btn" onclick="closeWindow('notesApp')">×</button>
+            </div>
+        </div>
+        <!-- HIER WIRD DIE ZWEITE DATEI GELADEN -->
+        <iframe src="notizen.html" id="notesIframe"></iframe>
+    </div>
+
+    <!-- Fenster 2: Einstellungen -->
+    <div class="window" id="settingsApp" style="top: 100px; left: 600px; width: 300px; height: 250px;">
+        <div class="window-header" id="settingsAppHeader">
+            <span>⚙️ Einstellungen</span>
+            <div class="window-controls">
+                <button class="close-btn" onclick="closeWindow('settingsApp')">×</button>
+            </div>
+        </div>
+        <div class="window-content">
+            <h4>Hintergrundfarbe</h4>
+            <select id="bgSelect" onchange="changeBackground()">
+                <option value="#0f172a">Nachtblau (Standard)</option>
+                <option value="#14532d">Waldgrün</option>
+                <option value="#4c1d95">Tiefes Lila</option>
+                <option value="#000000">Pechschwarz</option>
+            </select>
+
+            <h4 style="margin-top: 20px;">Datenverwaltung</h4>
+            <button class="btn-danger btn" onclick="deleteAllNotes()">⚠️ Alle Notizen löschen</button>
+        </div>
+    </div>
+
+    <div class="taskbar" id="taskbar"></div>
+
+    <script>
+        let highestZ = 100;
+        const openWindows = new Set();
+
+        function bringToFront(elementId) {
+            highestZ++;
+            document.getElementById(elementId).style.zIndex = highestZ;
+        }
+
+        function openWindow(elementId) {
+            document.getElementById(elementId).style.display = 'flex';
+            openWindows.add(elementId);
+            bringToFront(elementId);
+            updateTaskbar();
+        }
+
+        function closeWindow(elementId) {
+            document.getElementById(elementId).style.display = 'none';
+            openWindows.delete(elementId);
+            updateTaskbar();
+        }
+
+        function updateTaskbar() {
+            const taskbar = document.getElementById('taskbar');
+            taskbar.innerHTML = '';
+            openWindows.forEach(id => {
+                const title = document.getElementById(id + 'Header').querySelector('span').innerText;
+                const btn = document.createElement('div');
+                btn.className = 'taskbar-item';
+                btn.innerText = title;
+                btn.onclick = () => bringToFront(id);
+                taskbar.appendChild(btn);
+            });
+        }
+
+        function makeDraggable(windowId) {
+            const windowEl = document.getElementById(windowId);
+            const headerEl = document.getElementById(windowId + 'Header');
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+            headerEl.onmousedown = dragMouseDown;
+            windowEl.onmousedown = () => bringToFront(windowId); 
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+                // Verhindert, dass die Maus im iFrame stecken bleibt beim Ziehen
+                document.getElementById('notesIframe').style.pointerEvents = 'none';
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                windowEl.style.top = (windowEl.offsetTop - pos2) + "px";
+                windowEl.style.left = (windowEl.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                // iFrame wieder anklickbar machen
+                document.getElementById('notesIframe').style.pointerEvents = 'auto';
+            }
+        }
+
+        makeDraggable('notesApp');
+        makeDraggable('settingsApp');
+
+        function changeBackground() {
+            const color = document.getElementById('bgSelect').value;
+            document.body.style.backgroundColor = color;
+            localStorage.setItem('desktop_bg', color);
+        }
+
+        function deleteAllNotes() {
+            if(confirm('Bist du sicher? Alle Notizen werden gelöscht!')) {
+                localStorage.setItem('my_notes', '[]'); // Löscht die Daten
+                // Lädt den iFrame neu, damit die Notizen verschwinden
+                document.getElementById('notesIframe').contentWindow.location.reload();
+            }
+        }
+
+        const savedBg = localStorage.getItem('desktop_bg');
+        if (savedBg) {
+            document.body.style.backgroundColor = savedBg;
+            document.getElementById('bgSelect').value = savedBg;
+        }
+        
+        openWindow('notesApp'); 
+    </script>
+</body>
+</html>
