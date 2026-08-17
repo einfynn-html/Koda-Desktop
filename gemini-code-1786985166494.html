@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notizen App</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        
+        body {
+            background-color: #1e293b; /* Passt zum Fenster der index.html */
+            color: #f8fafc;
+            padding: 15px;
+        }
+
+        .note-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        
+        .note-form input, .note-form textarea {
+            width: 100%; padding: 10px; border-radius: 6px;
+            border: 1px solid #475569; background-color: #0f172a; color: white;
+        }
+        .note-form textarea { resize: vertical; min-height: 80px; }
+        
+        button {
+            background-color: #3b82f6; color: white; border: none;
+            padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;
+        }
+        button:hover { background-color: #2563eb; }
+        
+        .delete-btn { background-color: #ef4444; padding: 6px 10px; font-size: 0.85rem; margin-top: 10px; }
+        .delete-btn:hover { background-color: #dc2626; }
+
+        .note-card {
+            background-color: #334155; padding: 15px;
+            border-radius: 8px; margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .note-card h3 { margin-bottom: 8px; font-size: 1.1rem; }
+        .note-card p { white-space: pre-wrap; font-size: 0.95rem; color: #cbd5e1; }
+        
+        .empty { color: #94a3b8; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <form class="note-form" id="noteForm">
+        <input type="text" id="noteTitle" placeholder="Titel der Notiz..." required>
+        <textarea id="noteContent" placeholder="Was gibt es Wichtiges?..." required></textarea>
+        <button type="submit">Speichern</button>
+    </form>
+
+    <div id="notesContainer"></div>
+
+    <script>
+        const noteForm = document.getElementById('noteForm');
+        const notesContainer = document.getElementById('notesContainer');
+        
+        // Holt die Notizen aus dem gleichen Speicher, auf den auch die index.html zugreift
+        let notes = JSON.parse(localStorage.getItem('my_notes')) || [];
+
+        function renderNotes() {
+            notesContainer.innerHTML = '';
+            
+            if (notes.length === 0) {
+                notesContainer.innerHTML = '<p class="empty">Noch keine Notizen geschrieben.</p>';
+                return;
+            }
+
+            notes.forEach((note, index) => {
+                const card = document.createElement('div');
+                card.className = 'note-card';
+                card.innerHTML = `
+                    <h3>${escapeHtml(note.title)}</h3>
+                    <p>${escapeHtml(note.content)}</p>
+                    <button class="delete-btn" onclick="deleteNote(${index})">Löschen</button>
+                `;
+                notesContainer.appendChild(card);
+            });
+        }
+
+        noteForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            notes.unshift({
+                title: document.getElementById('noteTitle').value.trim(),
+                content: document.getElementById('noteContent').value.trim()
+            });
+            saveAndRender();
+            noteForm.reset();
+        });
+
+        function deleteNote(index) {
+            notes.splice(index, 1);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('my_notes', JSON.stringify(notes));
+            renderNotes();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        renderNotes();
+    </script>
+</body>
+</html>
