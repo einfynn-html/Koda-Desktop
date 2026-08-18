@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datei-Explorer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --accent-color: #3b82f6;
+            --text-main: #F8F9FA;
+            --text-sub: #B2B6BA;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            display: flex; height: 100vh; width: 100vw;
+            overflow: hidden; background: transparent; color: var(--text-main); user-select: none;
+        }
+
+        .explorer-sidebar {
+            width: 220px; min-width: 220px; background: rgba(0, 0, 0, 0.25);
+            border-right: 1px solid rgba(255,255,255,0.06); padding: 16px 12px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .sidebar-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 4px; color: var(--text-sub); font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .sidebar-item:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
+        .sidebar-item.active { background: rgba(255, 255, 255, 0.14); color: var(--text-main); border-left: 3px solid var(--accent-color); }
+
+        .explorer-content { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
+
+        .explorer-header {
+            padding: 14px 20px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .file-grid {
+            padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 16px; overflow-y: auto; align-content: start; flex-grow: 1;
+        }
+
+        .file-card {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 14px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px; cursor: pointer; transition: all 0.2s; position: relative; text-align: center;
+        }
+        .file-card:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.18); transform: translateY(-2px); }
+        .file-icon { font-size: 2.2rem; margin-bottom: 8px; }
+        .file-name { font-size: 0.82rem; font-weight: 500; word-break: break-word; color: var(--text-main); line-height: 1.2; }
+        
+        .file-actions { display: flex; gap: 6px; margin-top: 10px; }
+        .file-btn {
+            border: none; background: rgba(255,255,255,0.1); color: #fff; padding: 4px 8px;
+            border-radius: 3px; font-size: 0.75rem; cursor: pointer; transition: 0.2s;
+        }
+        .file-btn:hover { background: var(--accent-color); }
+        .file-btn.del:hover { background: #ef4444; }
+
+        .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-sub); margin-top: 40px; font-size: 0.9rem; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="explorer-sidebar">
+        <div class="sidebar-item active" id="nav-desktop" onclick="setFolder('desktop')">🖥️ Desktop</div>
+        <div class="sidebar-item" id="nav-documents" onclick="setFolder('documents')">📁 Dokumente</div>
+    </div>
+
+    <div class="explorer-content">
+        <div class="explorer-header">
+            <span id="currentFolderName">🖥️ Desktop</span>
+        </div>
+        <div class="file-grid" id="fileGrid"></div>
+    </div>
+
+    <script>
+        let currentFolder = 'desktop';
+
+        function loadFiles() {
+            const grid = document.getElementById('fileGrid');
+            grid.innerHTML = '';
+            const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const folderFiles = allFiles.filter(f => f.folder === currentFolder);
+
+            if (folderFiles.length === 0) {
+                grid.innerHTML = `<div class="empty-state">Ordner ist leer. Speichere eine Notiz als HTML ab.</div>`;
+                return;
+            }
+
+            folderFiles.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'file-card';
+                card.ondblclick = () => openFile(f.id);
+                card.innerHTML = `
+                    <div class="file-icon">🌐</div>
+                    <div class="file-name">${f.name}</div>
+                    <div class="file-actions">
+                        <button class="file-btn" onclick="event.stopPropagation(); downloadFile('${f.id}')" title="Download">⬇️</button>
+                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="In Notizen öffnen">👁️</button>
+                        <button class="file-btn del" onclick="event.stopPropagation(); deleteFile('${f.id}')" title="Löschen">✕</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function setFolder(folder) {
+            currentFolder = folder;
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${folder}`).classList.add('active');
+            document.getElementById('currentFolderName').textContent = folder === 'desktop' ? '🖥️ Desktop' : '📁 Dokumente';
+            loadFiles();
+        }
+
+        function deleteFile(id) {
+            let files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const fileToDelete = files.find(f => f.id == id);
+            
+            files = files.filter(f => f.id != id);
+            localStorage.setItem('os_vfs_v1', JSON.stringify(files));
+            loadFiles();
+
+            if (fileToDelete) {
+                window.parent.postMessage({ type: 'fileDeleted', filename: fileToDelete.name }, '*');
+            }
+            window.parent.postMessage({ type: 'fileSaved' }, '*');
+        }
+
+        function downloadFile(id) {
+            const files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const file = files.find(f => f.id == id);
+            if (!file) return;
+
+            const blob = new Blob([file.content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = file.name;
+            a.click();
+        }
+
+        function openFile(id) {
+            const files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const file = files.find(f => f.id == id);
+            if (!file) return;
+
+            window.parent.postMessage({ type: 'openInNotes', file: file }, '*');
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'themeUpdate') {
+                document.documentElement.style.setProperty('--accent-color', e.data.theme.accentColor);
+            } else if (e.data && e.data.type === 'refreshFiles') {
+                loadFiles();
+            }
+        });
+
+        loadFiles();
+    </script>
+</body>
+</html>
