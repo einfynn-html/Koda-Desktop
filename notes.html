@@ -17,19 +17,19 @@
 
         body { display: flex; height: 100vh; width: 100vw; overflow: hidden; background: transparent; color: var(--text-main); user-select: none; }
 
-        /* --- APP LADEBILDSCHIRM CSS --- */
+        /* --- DYNAMISCHER LADEBILDSCHIRM --- */
         #appLoadingScreen {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            position: fixed; inset: 0; background: rgba(15, 17, 21, 0.85); backdrop-filter: blur(12px);
             z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.4s ease, visibility 0.4s; color: var(--text-main);
+            transition: opacity 0.3s ease, visibility 0.3s; color: var(--text-main);
         }
         .spinner {
-            width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1);
+            width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
             border-top-color: var(--accent-color); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 12px;
+            animation: spin 0.8s linear infinite; margin-bottom: 14px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* ------------------------------ */
+        /* ---------------------------------- */
 
         .notes-sidebar {
             width: 250px; min-width: 250px; background: rgba(0, 0, 0, 0.25);
@@ -80,9 +80,10 @@
 </head>
 <body>
 
+    <!-- Dynamic Loading Screen -->
     <div id="appLoadingScreen">
         <div class="spinner"></div>
-        <div style="font-size: 0.9rem; font-weight: 500;">Notizen wird geladen...</div>
+        <div id="loadingText" style="font-size: 0.9rem; font-weight: 500;">Notizen werden geladen...</div>
     </div>
 
     <div class="notes-sidebar">
@@ -126,6 +127,23 @@
         const SALT = "CleanDesktopOS_SecureSalt_v3";
         let cryptoKey = null;
 
+        function showLoader(msg = "Wird verarbeitet...") {
+            const loader = document.getElementById('appLoadingScreen');
+            document.getElementById('loadingText').textContent = msg;
+            if (loader) {
+                loader.style.visibility = 'visible';
+                loader.style.opacity = '1';
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('appLoadingScreen');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.visibility = 'hidden', 300);
+            }
+        }
+
         async function generateKey(pwd) {
             const enc = new TextEncoder();
             const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
@@ -164,25 +182,24 @@
             req.onsuccess = (e) => { 
                 db = e.target.result; 
                 loadNotesFromDB(); 
-                hideLoader(); 
             };
         }
 
-        function hideLoader() {
-            const loader = document.getElementById('appLoadingScreen');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.visibility = 'hidden', 400);
-            }
-        }
-
         async function loadNotesFromDB() {
+            showLoader("Notizen werden entschlüsselt...");
+            // Kurzes Verzögern, damit der Browser den Ladebildschirm zeichnen kann
+            await new Promise(r => setTimeout(r, 50));
+
             const req = db.transaction('notes', 'readonly').objectStore('notes').getAll();
             req.onsuccess = async () => {
                 notes = [];
-                for (let n of req.result || []) notes.push({ id: n.id, category: n.category, title: await decryptText(n.title), body: await decryptText(n.body) });
+                const rawNotes = req.result || [];
+                for (let n of rawNotes) {
+                    notes.push({ id: n.id, category: n.category, title: await decryptText(n.title), body: await decryptText(n.body) });
+                }
                 if (notes.length > 0) openTab(notes[0].id, false); else createNewNote(true);
                 renderNotesSidebar();
+                hideLoader();
             };
         }
 
@@ -250,6 +267,21 @@
         }
 
         function openTab(id, edit = false) {
+            const n = notes.find(item => item.id === id);
+            
+            // Wenn die Datei extrem groß ist (> 50KB), Ladebildschirm zeigen
+            if (n && n.body && n.body.length > 50000) {
+                showLoader("Große Notiz wird geladen...");
+                setTimeout(() => {
+                    executeOpenTab(id, edit);
+                    hideLoader();
+                }, 50);
+            } else {
+                executeOpenTab(id, edit);
+            }
+        }
+
+        function executeOpenTab(id, edit) {
             if (!openTabIds.includes(id)) openTabIds.push(id);
             activeTabId = id; if (isEditingMap[id] === undefined || edit) isEditingMap[id] = edit;
             renderTabs(); renderEditor();
@@ -306,20 +338,24 @@
                 document.documentElement.style.setProperty('--accent-color', e.data.theme.accentColor);
             } 
             else if (e.data && e.data.type === 'openInNotes') {
-                const file = e.data.file;
-                const parser = new DOMParser(); const doc = parser.parseFromString(file.content, 'text/html');
-                const h1Node = doc.querySelector('h1'); const divNode = doc.querySelector('div');
-                const title = h1Node ? h1Node.innerText : file.name.replace('.html', '');
-                let body = divNode ? divNode.innerHTML : '';
-                body = body.replace(/<br\s*[\/]?>/gi, '\n');
+                showLoader("Große Datei verarbeiten...");
                 
-                const n = { id: Date.now(), title: title, body: body, category: 'Allgemein' };
-                notes.push(n); await saveNoteToDB(n); openTab(n.id, false); renderNotesSidebar();
+                // Asynchrone Entlastung des Threads für Ladebildschirm-Render
+                setTimeout(async () => {
+                    const file = e.data.file;
+                    const parser = new DOMParser(); const doc = parser.parseFromString(file.content, 'text/html');
+                    const h1Node = doc.querySelector('h1'); const divNode = doc.querySelector('div');
+                    const title = h1Node ? h1Node.innerText : file.name.replace('.html', '');
+                    let body = divNode ? divNode.innerHTML : '';
+                    body = body.replace(/<br\s*[\/]?>/gi, '\n');
+                    
+                    const n = { id: Date.now(), title: title, body: body, category: 'Allgemein' };
+                    notes.push(n); await saveNoteToDB(n); openTab(n.id, false); renderNotesSidebar();
+                    hideLoader();
+                }, 50);
             }
         });
 
-        // Dem Main-OS mitteilen, dass das HTML geladen ist. 
-        // Falls schon entsperrt, schickt es direkt das Passwort.
         window.parent.postMessage({ type: 'notesReady' }, '*');
     </script>
 </body>
