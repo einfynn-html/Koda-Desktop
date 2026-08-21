@@ -30,6 +30,20 @@
             user-select: none; color: var(--text-main); transition: background 0.6s ease;
         }
 
+        /* --- LADEBILDSCHIRM CSS --- */
+        #osLoadingScreen {
+            position: fixed; inset: 0; background: #0f1115; z-index: 9999999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent-color); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* -------------------------- */
+
         #loginScreen {
             position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(30px);
             z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -63,12 +77,12 @@
         .icon {
             position: absolute; width: 90px; display: flex; flex-direction: column;
             align-items: center; cursor: pointer; padding: 8px; border-radius: 4px;
-            transition: background 0.2s; user-select: none; outline: none;
+            transition: background 0.2s; user-select: none;
         }
         .icon:hover { background: rgba(255, 255, 255, 0.12); }
         .icon-img {
             width: 56px; height: 56px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(var(--glass-blur));
-            border: none; outline: none; border-radius: 6px; margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; margin-bottom: 8px;
             display: flex; justify-content: center; align-items: center; font-size: 26px; pointer-events: none;
             overflow: hidden;
         }
@@ -100,7 +114,7 @@
             display: flex; align-items: center; justify-content: space-between; cursor: grab;
         }
         .window-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; pointer-events: none; }
-        .window-title img { width: 22px; height: 22px; border-radius: 4px; object-fit: cover; mix-blend-mode: screen; }
+        .window-title img { width: 22px; height: 22px; border-radius: 4px; object-fit: cover; }
         .window-controls { display: flex; gap: 4px; align-items: center; }
         .win-btn { width: 28px; height: 26px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.05); color: var(--text-sub); cursor: pointer; }
         .win-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
@@ -158,8 +172,12 @@
 </head>
 <body>
 
-    <!-- Lock Screen -->
-    <div id="loginScreen">
+    <div id="osLoadingScreen">
+        <div class="spinner"></div>
+        <div style="font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.7);">System wird gestartet...</div>
+    </div>
+
+    <div id="loginScreen" style="display: none; opacity: 0;">
         <div class="login-box">
             <h2 id="loginTitle">System gesperrt</h2>
             <p id="loginDesc">Bitte Master-Passwort eingeben</p>
@@ -179,13 +197,13 @@
 
     <div class="dock-container">
         <button class="dock-item" onclick="toggleWindow('settingsWindow')">
-            <img src="NOT (1).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="SET"> Settings
+            <img src="NOT (1).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover;" alt="SET" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23444%22/></svg>'"> Settings
         </button>
         <button class="dock-item" onclick="toggleWindow('notesWindow')">
-            <img src="NOT (3).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="NOT"> Notes
+            <img src="NOT (3).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover;" alt="NOT" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23444%22/></svg>'"> Notes
         </button>
         <button class="dock-item" onclick="toggleWindow('explorerWindow')">
-            <img src="NOT (2).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="EXP"> Explorer
+            <img src="NOT (2).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover;" alt="EXP" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23444%22/></svg>'"> Explorer
         </button>
     </div>
 
@@ -198,11 +216,10 @@
         <div id="taskList" style="display: flex; flex-direction: column; gap: 8px;"></div>
     </div>
 
-    <!-- APP WINDOWS -->
     <div class="app-window hidden" id="notesWindow">
         <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
             <div class="window-title">
-                <img src="NOT (3).png" alt="NOT"> Notizen
+                📝 Notizen
             </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('notesWindow')">▢</button>
@@ -210,14 +227,14 @@
             </div>
         </div>
         <div class="window-body" style="padding: 0; display: block;">
-            <iframe id="notesFrame" src="notes.html" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
+            <iframe id="notesFrame" data-src="notes.html" src="" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
         </div>
     </div>
 
     <div class="app-window hidden" id="explorerWindow">
         <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
             <div class="window-title">
-                <img src="NOT (2).png" alt="EXP"> Datei-Explorer
+                📁 Datei-Explorer
             </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('explorerWindow')">▢</button>
@@ -225,14 +242,14 @@
             </div>
         </div>
         <div class="window-body" style="padding: 0; display: block;">
-            <iframe id="explorerFrame" src="explorer.html" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
+            <iframe id="explorerFrame" data-src="explorer.html" src="" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
         </div>
     </div>
 
     <div class="app-window hidden" id="settingsWindow">
         <div class="window-header" onmousedown="startDrag(event, 'settingsWindow')">
             <div class="window-title">
-                <img src="NOT (1).png" alt="SET"> System-Einstellungen
+                ⚙️ System-Einstellungen
             </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('settingsWindow')">▢</button>
@@ -302,6 +319,10 @@
     </div>
 
     <script>
+        // Systemvariablen
+        let osUnlocked = false;
+        let globalMasterPassword = null; // Speichert das PW für Apps, die später geladen werden
+
         function openDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('CleanOSDB', 1);
@@ -322,9 +343,7 @@
                 const tx = db.transaction('assets', 'readwrite');
                 tx.objectStore('assets').put(dataUrl, 'custom_bg');
                 return new Promise(res => tx.oncomplete = res);
-            } catch (e) {
-                console.error("IndexedDB Speicherung fehlgeschlagen:", e);
-            }
+            } catch (e) { console.error("IndexedDB Speicherung fehlgeschlagen:", e); }
         }
 
         async function loadCustomBgAsset() {
@@ -336,9 +355,7 @@
                     req.onsuccess = () => resolve(req.result);
                     req.onerror = () => resolve(null);
                 });
-            } catch (e) {
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         async function clearCustomBgAsset() {
@@ -356,9 +373,7 @@
                 localDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                 alert("Ordner erfolgreich verbunden! Dateien und Einstellungen werden nun hier als echte Dateien gespeichert.");
                 saveSystemState();
-            } catch (err) {
-                console.error("Ordner-Zugriff verweigert oder abgebrochen", err);
-            }
+            } catch (err) { console.error("Ordner-Zugriff verweigert oder abgebrochen", err); }
         }
 
         async function writeToLocalFile(filename, content) {
@@ -368,26 +383,17 @@
                 const writable = await fileHandle.createWritable();
                 await writable.write(content);
                 await writable.close();
-            } catch (e) {
-                console.error("Fehler beim Schreiben der Datei:", e);
-            }
+            } catch (e) { console.error("Fehler beim Schreiben der Datei:", e); }
         }
 
         async function deleteLocalFile(filename) {
             if (!localDirHandle) return;
-            try {
-                await localDirHandle.removeEntry(filename);
-            } catch (e) {
-                console.error("Fehler beim Löschen der echten Datei:", e);
-            }
+            try { await localDirHandle.removeEntry(filename); } catch (e) { console.error("Fehler beim Löschen:", e); }
         }
 
         function saveSystemState() {
             if (!localDirHandle) return;
-            const state = {
-                theme: currentTheme,
-                icons: JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}')
-            };
+            const state = { theme: currentTheme, icons: JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}') };
             writeToLocalFile('os_settings.json', JSON.stringify(state, null, 2));
         }
 
@@ -421,21 +427,16 @@
 
         function hexToRgb(hex) {
             const bigint = parseInt(hex.replace('#', ''), 16);
-            const r = (bigint >> 16) & 255;
-            const g = (bigint >> 8) & 255;
-            const b = bigint & 255;
-            return `${r}, ${g}, ${b}`;
+            return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
         }
 
         async function loadSavedTheme() {
             const saved = JSON.parse(localStorage.getItem('os_theme_v3'));
             if (saved) currentTheme = { ...currentTheme, ...saved };
-
             if (currentTheme.mainBg === "CUSTOM_INDEXED_DB") {
                 const storedBg = await loadCustomBgAsset();
                 if (storedBg) currentTheme.mainBg = `url('${storedBg}')`;
             }
-
             const presetKey = Object.keys(PRESETS).find(k => PRESETS[k].mainBg === currentTheme.mainBg);
             if (presetKey) document.getElementById('themePresetSelect').value = presetKey;
             
@@ -450,305 +451,3 @@
             document.getElementById('sliderOpacity').value = t.glassOpacity;
             document.getElementById('sliderBlur').value = t.glassBlur;
             if (t.customUrl) document.getElementById('customBgUrl').value = t.customUrl;
-            else document.getElementById('customBgUrl').value = '';
-        }
-
-        async function applyPreset() {
-            const key = document.getElementById('themePresetSelect').value;
-            if (PRESETS[key]) {
-                await clearCustomBgAsset();
-                currentTheme = { ...PRESETS[key] };
-                delete currentTheme.customUrl;
-                updateUIFromTheme(currentTheme);
-                applyTheme(currentTheme);
-                saveTheme();
-            }
-        }
-
-        function updateColorsManually() {
-            const bg1 = document.getElementById('pickerBg1').value, bg2 = document.getElementById('pickerBg2').value;
-            currentTheme.mainBg = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`; currentTheme.bgGrad1 = bg1; currentTheme.bgGrad2 = bg2;
-            delete currentTheme.customUrl;
-            clearCustomBgAsset();
-            updateCustomTheme();
-        }
-
-        async function handleUrlUpload() {
-            const url = document.getElementById('customBgUrl').value.trim();
-            if (url) {
-                await clearCustomBgAsset();
-                currentTheme.mainBg = `url('${url}')`;
-                currentTheme.customUrl = url;
-                updateCustomTheme();
-            }
-        }
-
-        function handleFileUpload(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const dataUrl = event.target.result;
-                await saveCustomBgAsset(dataUrl);
-                currentTheme.mainBg = `url('${dataUrl}')`;
-                delete currentTheme.customUrl;
-                updateCustomTheme();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function updateCustomTheme() {
-            currentTheme.glassBase = document.getElementById('pickerGlass').value;
-            currentTheme.glassOpacity = document.getElementById('sliderOpacity').value;
-            currentTheme.glassBlur = document.getElementById('sliderBlur').value;
-            currentTheme.accentColor = document.getElementById('pickerAccent').value;
-            applyTheme(currentTheme); saveTheme();
-        }
-
-        function applyTheme(t) {
-            const root = document.documentElement;
-            root.style.setProperty('--main-bg', t.mainBg); 
-            root.style.setProperty('--glass-base', t.glassBase);
-            root.style.setProperty('--glass-base-rgb', hexToRgb(t.glassBase)); 
-            root.style.setProperty('--glass-opacity', t.glassOpacity); 
-            root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
-            root.style.setProperty('--accent-color', t.accentColor);
-
-            ['notesFrame', 'explorerFrame'].forEach(id => {
-                const frame = document.getElementById(id);
-                if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'themeUpdate', theme: t }, '*');
-            });
-        }
-
-        function saveTheme() {
-            const themeToSave = { ...currentTheme };
-            if (themeToSave.mainBg && themeToSave.mainBg.startsWith("url('data:")) {
-                themeToSave.mainBg = "CUSTOM_INDEXED_DB";
-            }
-            localStorage.setItem('os_theme_v3', JSON.stringify(themeToSave));
-            saveSystemState();
-        }
-
-        const GRID_CELL_X = 105; const GRID_CELL_Y = 115; const OFFSET_X = 30; const OFFSET_Y = 120;
-
-        function loadDesktopIcons() {
-            const container = document.getElementById('desktopGrid');
-            container.innerHTML = '';
-            const savedPositions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
-
-            const systemIcons = [
-                { id: 'sys_settings', name: 'System', icon: '<img src="NOT (1).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="SET">', action: () => toggleWindow('settingsWindow') },
-                { id: 'sys_notes', name: 'Notizen', icon: '<img src="NOT (3).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="NOT">', action: () => toggleWindow('notesWindow') },
-                { id: 'sys_explorer', name: 'Explorer', icon: '<img src="NOT (2).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="EXP">', action: () => toggleWindow('explorerWindow') }
-            ];
-
-            const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            const desktopFiles = allFiles.filter(f => f.folder === 'desktop');
-
-            const allItems = [
-                ...systemIcons.map(s => ({ ...s, isFile: false })),
-                ...desktopFiles.map(f => ({
-                    id: `file_${f.id}`, name: f.name, icon: '🌐', isFile: true, fileData: f, action: () => openFileInNotes(f)
-                }))
-            ];
-
-            allItems.forEach((item, index) => {
-                const iconEl = document.createElement('div');
-                iconEl.className = 'icon'; iconEl.dataset.iconId = item.id;
-                iconEl.innerHTML = `<div class="icon-img">${item.icon}</div><div class="icon-text">${item.name}</div>`;
-                iconEl.addEventListener('dblclick', (e) => { e.stopPropagation(); item.action(); });
-
-                let pos = savedPositions[item.id];
-                if (!pos) {
-                    const col = Math.floor(index / 5); const row = index % 5;
-                    pos = { x: OFFSET_X + col * GRID_CELL_X, y: OFFSET_Y + row * GRID_CELL_Y };
-                }
-                iconEl.style.left = `${pos.x}px`; iconEl.style.top = `${pos.y}px`;
-                makeIconDraggable(iconEl); container.appendChild(iconEl);
-            });
-        }
-
-        let draggedIcon = null, dragOffsetX = 0, dragOffsetY = 0, isDraggingIcon = false;
-
-        function makeIconDraggable(el) {
-            el.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                draggedIcon = el; isDraggingIcon = false;
-                dragOffsetX = e.clientX - el.offsetLeft; dragOffsetY = e.clientY - el.offsetTop;
-                document.addEventListener('mousemove', onIconMove); document.addEventListener('mouseup', onIconRelease);
-            });
-        }
-
-        function onIconMove(e) {
-            if (!draggedIcon) return;
-            isDraggingIcon = true; draggedIcon.style.zIndex = 1000;
-            draggedIcon.style.left = `${e.clientX - dragOffsetX}px`; draggedIcon.style.top = `${e.clientY - dragOffsetY}px`;
-        }
-
-        function onIconRelease(e) {
-            if (!draggedIcon) return;
-            if (isDraggingIcon) {
-                let currentX = draggedIcon.offsetLeft - OFFSET_X; let currentY = draggedIcon.offsetTop - OFFSET_Y;
-                let col = Math.max(0, Math.round(currentX / GRID_CELL_X)); let row = Math.max(0, Math.round(currentY / GRID_CELL_Y));
-                let snapX = OFFSET_X + col * GRID_CELL_X; let snapY = OFFSET_Y + row * GRID_CELL_Y;
-                draggedIcon.style.left = `${snapX}px`; draggedIcon.style.top = `${snapY}px`; draggedIcon.style.zIndex = '';
-                const id = draggedIcon.dataset.iconId;
-                const positions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
-                positions[id] = { x: snapX, y: snapY }; localStorage.setItem('os_icon_positions_v1', JSON.stringify(positions));
-                saveSystemState();
-            }
-            draggedIcon = null; document.removeEventListener('mousemove', onIconMove); document.removeEventListener('mouseup', onIconRelease);
-        }
-
-        function openFileInNotes(file) {
-            const notesWin = document.getElementById('notesWindow');
-            if (notesWin.classList.contains('hidden')) toggleWindow('notesWindow');
-            else bringToFront(notesWin);
-            const notesFrame = document.getElementById('notesFrame');
-            if (notesFrame && notesFrame.contentWindow) notesFrame.contentWindow.postMessage({ type: 'openInNotes', file: file }, '*');
-        }
-
-        const SALT = "CleanDesktopOS_SecureSalt_v3"; let cryptoKey = null;
-
-        async function generateKey(pwd) {
-            const enc = new TextEncoder();
-            const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
-            cryptoKey = await crypto.subtle.deriveKey(
-                { name: "PBKDF2", salt: enc.encode(SALT), iterations: 100000, hash: "SHA-256" },
-                keyMat, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-            );
-        }
-
-        async function encryptText(txt) {
-            if(!cryptoKey) return txt;
-            const iv = crypto.getRandomValues(new Uint8Array(12)); const enc = new TextEncoder().encode(txt);
-            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv}, cryptoKey, enc);
-            const combined = new Uint8Array(12 + cipher.byteLength);
-            combined.set(iv, 0); combined.set(new Uint8Array(cipher), 12);
-            let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
-        }
-
-        async function decryptText(b64) {
-            if(!cryptoKey || !b64) return b64;
-            try {
-                const bin = atob(b64); const combined = new Uint8Array(bin.length);
-                for(let i=0; i<bin.length; i++) combined[i] = bin.charCodeAt(i);
-                const iv = combined.slice(0, 12); const cipher = combined.slice(12);
-                const dec = await crypto.subtle.decrypt({name: "AES-GCM", iv}, cryptoKey, cipher);
-                return new TextDecoder().decode(dec);
-            } catch(e) { return b64; }
-        }
-
-        window.onload = async () => {
-            await loadSavedTheme(); 
-            loadDesktopIcons();
-            if (!localStorage.getItem('os_locked_v3')) {
-                document.getElementById('loginDesc').innerText = 'Lege ein neues Master-Passwort fest.';
-                document.getElementById('loginBtn').innerText = 'Einrichten';
-            }
-            setTimeout(() => { document.getElementById('loginScreen').style.opacity = '1'; }, 100);
-        };
-
-        function handleLoginKey(e) { if(e.key === 'Enter') handleLogin(); }
-
-        async function handleLogin() {
-            const pwd = document.getElementById('loginPwd').value; if(!pwd) return;
-            await generateKey(pwd);
-            if (!localStorage.getItem('os_locked_v3')) {
-                localStorage.setItem('os_locked_v3', await encryptText("OS_VERIFIED")); unlockSystem(pwd);
-            } else {
-                if (await decryptText(localStorage.getItem('os_locked_v3')) === "OS_VERIFIED") unlockSystem(pwd);
-                else alert("Falsches Passwort!");
-            }
-        }
-
-        function unlockSystem(pwd) {
-            const screen = document.getElementById('loginScreen');
-            screen.style.opacity = '0'; setTimeout(() => { screen.style.display = 'none'; }, 500);
-            const frame = document.getElementById('notesFrame');
-            if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'unlock', pwd: pwd }, '*');
-        }
-
-        let actWin = null, oX = 0, oY = 0;
-        function toggleWindow(id) { 
-            const w = document.getElementById(id);
-            if (w.classList.contains('hidden')) { w.classList.remove('hidden'); bringToFront(w); } 
-            else { w.classList.add('hidden'); }
-            const popup = document.getElementById('taskManagerPopup');
-            if (popup && !popup.classList.contains('hidden')) renderTaskManager();
-        }
-
-        function toggleFullscreen(id) { document.getElementById(id).classList.toggle('fullscreen'); }
-        function bringToFront(w) { document.querySelectorAll('.app-window').forEach(el => el.style.zIndex = 100); w.style.zIndex = 101; }
-
-        function startDrag(e, id) {
-            actWin = document.getElementById(id); bringToFront(actWin);
-            oX = e.clientX - actWin.offsetLeft; oY = e.clientY - actWin.offsetTop;
-            document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag);
-        }
-        function onDrag(e) {
-            if (!actWin) return;
-            actWin.style.left = `${Math.max(0, e.clientX - oX)}px`; actWin.style.top = `${Math.max(0, e.clientY - oY)}px`;
-        }
-        function stopDrag() { actWin = null; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
-        }
-        setInterval(updateClock, 1000); updateClock();
-
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'notesReady') applyTheme(currentTheme);
-            else if (e.data && e.data.type === 'fileSaved') {
-                loadDesktopIcons();
-                const ex = document.getElementById('explorerFrame');
-                if (ex && ex.contentWindow) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
-                
-                if (e.data.filename && e.data.content) {
-                    writeToLocalFile(e.data.filename, e.data.content);
-                }
-            } else if (e.data && e.data.type === 'fileDeleted') {
-                if (e.data.filename) deleteLocalFile(e.data.filename);
-            } else if (e.data && e.data.type === 'openInNotes') openFileInNotes(e.data.file);
-        });
-
-        const systemApps = [
-            { id: 'settingsWindow', name: '⚙️ Einstellungen', frameId: null },
-            { id: 'notesWindow', name: '📝 Notizen', frameId: 'notesFrame' },
-            { id: 'explorerWindow', name: '📁 Explorer', frameId: 'explorerFrame' }
-        ];
-
-        function toggleTaskManager() {
-            const popup = document.getElementById('taskManagerPopup');
-            if (popup.classList.contains('hidden')) { renderTaskManager(); popup.classList.remove('hidden'); } 
-            else popup.classList.add('hidden');
-        }
-
-        function renderTaskManager() {
-            const container = document.getElementById('taskList'); container.innerHTML = '';
-            let activeProcesses = 0;
-            systemApps.forEach(app => {
-                const win = document.getElementById(app.id);
-                if (win && !win.classList.contains('hidden')) {
-                    activeProcesses++;
-                    const item = document.createElement('div'); item.className = 'task-item';
-                    const restartHtml = app.frameId ? `<button class="task-btn" onclick="restartApp('${app.id}', '${app.frameId}')" title="Neustarten">↻</button>` : '';
-                    item.innerHTML = `<div class="task-info"><span class="task-name">${app.name}</span></div>
-                                      <div class="task-actions">${restartHtml}<button class="task-btn close" onclick="closeApp('${app.id}')" title="Beenden">✕</button></div>`;
-                    container.appendChild(item);
-                }
-            });
-            if (activeProcesses === 0) container.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding: 10px 0;">Keine Prozesse aktiv.</div>';
-        }
-
-        function restartApp(winId, frameId) {
-            const frame = document.getElementById(frameId);
-            if (frame) { const currentSrc = frame.src; frame.src = 'about:blank'; setTimeout(() => { frame.src = currentSrc; }, 100); }
-            setTimeout(renderTaskManager, 150);
-        }
-
-        function closeApp(winId) { const win = document.getElementById(winId); if (win && !win.classList.contains('hidden')) toggleWindow(winId); }
-    </script>
-</body>
-</html>
