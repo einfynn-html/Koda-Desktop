@@ -451,3 +451,343 @@
             document.getElementById('sliderOpacity').value = t.glassOpacity;
             document.getElementById('sliderBlur').value = t.glassBlur;
             if (t.customUrl) document.getElementById('customBgUrl').value = t.customUrl;
+            else document.getElementById('customBgUrl').value = '';
+        }
+
+        async function applyPreset() {
+            const key = document.getElementById('themePresetSelect').value;
+            if (PRESETS[key]) {
+                await clearCustomBgAsset(); currentTheme = { ...PRESETS[key] }; delete currentTheme.customUrl;
+                updateUIFromTheme(currentTheme); applyTheme(currentTheme); saveTheme();
+            }
+        }
+
+        function updateColorsManually() {
+            const bg1 = document.getElementById('pickerBg1').value, bg2 = document.getElementById('pickerBg2').value;
+            currentTheme.mainBg = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`; currentTheme.bgGrad1 = bg1; currentTheme.bgGrad2 = bg2;
+            delete currentTheme.customUrl; clearCustomBgAsset(); updateCustomTheme();
+        }
+
+        async function handleUrlUpload() {
+            const url = document.getElementById('customBgUrl').value.trim();
+            if (url) { await clearCustomBgAsset(); currentTheme.mainBg = `url('${url}')`; currentTheme.customUrl = url; updateCustomTheme(); }
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const dataUrl = event.target.result; await saveCustomBgAsset(dataUrl);
+                currentTheme.mainBg = `url('${dataUrl}')`; delete currentTheme.customUrl; updateCustomTheme();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateCustomTheme() {
+            currentTheme.glassBase = document.getElementById('pickerGlass').value; currentTheme.glassOpacity = document.getElementById('sliderOpacity').value;
+            currentTheme.glassBlur = document.getElementById('sliderBlur').value; currentTheme.accentColor = document.getElementById('pickerAccent').value;
+            applyTheme(currentTheme); saveTheme();
+        }
+
+        function applyTheme(t) {
+            const root = document.documentElement;
+            root.style.setProperty('--main-bg', t.mainBg); root.style.setProperty('--glass-base', t.glassBase);
+            root.style.setProperty('--glass-base-rgb', hexToRgb(t.glassBase)); root.style.setProperty('--glass-opacity', t.glassOpacity); 
+            root.style.setProperty('--glass-blur', `${t.glassBlur}px`); root.style.setProperty('--accent-color', t.accentColor);
+
+            ['notesFrame', 'explorerFrame'].forEach(id => {
+                const frame = document.getElementById(id);
+                // Nur Nachricht senden, wenn der iFrame schon geladen wurde (lazy loading)
+                if (frame && frame.contentWindow && frame.src) frame.contentWindow.postMessage({ type: 'themeUpdate', theme: t }, '*');
+            });
+        }
+
+        function saveTheme() {
+            const themeToSave = { ...currentTheme };
+            if (themeToSave.mainBg && themeToSave.mainBg.startsWith("url('data:")) themeToSave.mainBg = "CUSTOM_INDEXED_DB";
+            localStorage.setItem('os_theme_v3', JSON.stringify(themeToSave)); saveSystemState();
+        }
+
+        const GRID_CELL_X = 105; const GRID_CELL_Y = 115; const OFFSET_X = 30; const OFFSET_Y = 120;
+
+        function loadDesktopIcons() {
+            const container = document.getElementById('desktopGrid'); container.innerHTML = '';
+            const savedPositions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
+
+            const systemIcons = [
+                { id: 'sys_settings', name: 'System', icon: '⚙️', action: () => toggleWindow('settingsWindow') },
+                { id: 'sys_notes', name: 'Notizen', icon: '📝', action: () => toggleWindow('notesWindow') },
+                { id: 'sys_explorer', name: 'Explorer', icon: '📁', action: () => toggleWindow('explorerWindow') }
+            ];
+
+            const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const desktopFiles = allFiles.filter(f => f.folder === 'desktop');
+
+            const allItems = [...systemIcons.map(s => ({ ...s, isFile: false })), ...desktopFiles.map(f => ({
+                id: `file_${f.id}`, name: f.name, icon: '🌐', isFile: true, fileData: f, action: () => openFileInNotes(f)
+            }))];
+
+            allItems.forEach((item, index) => {
+                const iconEl = document.createElement('div');
+                iconEl.className = 'icon'; iconEl.dataset.iconId = item.id;
+                iconEl.innerHTML = `<div class="icon-img">${item.icon}</div><div class="icon-text">${item.name}</div>`;
+                iconEl.addEventListener('dblclick', (e) => { e.stopPropagation(); item.action(); });
+
+                let pos = savedPositions[item.id];
+                if (!pos) {
+                    const col = Math.floor(index / 5); const row = index % 5;
+                    pos = { x: OFFSET_X + col * GRID_CELL_X, y: OFFSET_Y + row * GRID_CELL_Y };
+                }
+                iconEl.style.left = `${pos.x}px`; iconEl.style.top = `${pos.y}px`;
+                makeIconDraggable(iconEl); container.appendChild(iconEl);
+            });
+        }
+
+        let draggedIcon = null, dragOffsetX = 0, dragOffsetY = 0, isDraggingIcon = false;
+
+        function makeIconDraggable(el) {
+            el.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return; draggedIcon = el; isDraggingIcon = false;
+                dragOffsetX = e.clientX - el.offsetLeft; dragOffsetY = e.clientY - el.offsetTop;
+                document.addEventListener('mousemove', onIconMove); document.addEventListener('mouseup', onIconRelease);
+            });
+        }
+
+        function onIconMove(e) {
+            if (!draggedIcon) return; isDraggingIcon = true; draggedIcon.style.zIndex = 1000;
+            draggedIcon.style.left = `${e.clientX - dragOffsetX}px`; draggedIcon.style.top = `${e.clientY - dragOffsetY}px`;
+        }
+
+        function onIconRelease(e) {
+            if (!draggedIcon) return;
+            if (isDraggingIcon) {
+                let currentX = draggedIcon.offsetLeft - OFFSET_X; let currentY = draggedIcon.offsetTop - OFFSET_Y;
+                let col = Math.max(0, Math.round(currentX / GRID_CELL_X)); let row = Math.max(0, Math.round(currentY / GRID_CELL_Y));
+                let snapX = OFFSET_X + col * GRID_CELL_X; let snapY = OFFSET_Y + row * GRID_CELL_Y;
+                draggedIcon.style.left = `${snapX}px`; draggedIcon.style.top = `${snapY}px`; draggedIcon.style.zIndex = '';
+                const id = draggedIcon.dataset.iconId;
+                const positions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
+                positions[id] = { x: snapX, y: snapY }; localStorage.setItem('os_icon_positions_v1', JSON.stringify(positions)); saveSystemState();
+            }
+            draggedIcon = null; document.removeEventListener('mousemove', onIconMove); document.removeEventListener('mouseup', onIconRelease);
+        }
+
+        function loadAppIframe(frameId) {
+            const iframe = document.getElementById(frameId);
+            if (iframe && !iframe.src.includes('.html')) {
+                iframe.src = iframe.getAttribute('data-src');
+                return true; // Gibt true zurück, wenn es grade frisch geladen wird
+            }
+            return false;
+        }
+
+        function openFileInNotes(file) {
+            const notesWin = document.getElementById('notesWindow');
+            const notesFrame = document.getElementById('notesFrame');
+            
+            const isFreshLoad = loadAppIframe('notesFrame');
+            
+            if (notesWin.classList.contains('hidden')) toggleWindow('notesWindow');
+            else bringToFront(notesWin);
+            
+            // Wenn die App grade frisch geladen wird, wartet sie selbst auf den load-Event.
+            // Die "notesReady" Message fängt das später ab. 
+            // Falls sie schon geladen war, sofort senden:
+            if (!isFreshLoad && notesFrame && notesFrame.contentWindow) {
+                notesFrame.contentWindow.postMessage({ type: 'openInNotes', file: file }, '*');
+            } else {
+                // Warte, bis die App signalisiert, dass sie bereit ist.
+                // Das machen wir im globalen Message-Listener weiter unten.
+                window.pendingFileToOpen = file;
+            }
+        }
+
+        const SALT = "CleanDesktopOS_SecureSalt_v3"; let cryptoKey = null;
+
+        async function generateKey(pwd) {
+            const enc = new TextEncoder();
+            const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
+            cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(SALT), iterations: 100000, hash: "SHA-256" }, keyMat, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+        }
+
+        async function encryptText(txt) {
+            if(!cryptoKey) return txt;
+            const iv = crypto.getRandomValues(new Uint8Array(12)); const enc = new TextEncoder().encode(txt);
+            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv}, cryptoKey, enc);
+            const combined = new Uint8Array(12 + cipher.byteLength);
+            combined.set(iv, 0); combined.set(new Uint8Array(cipher), 12);
+            let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
+        }
+
+        async function decryptText(b64) {
+            if(!cryptoKey || !b64) return b64;
+            try {
+                const bin = atob(b64); const combined = new Uint8Array(bin.length);
+                for(let i=0; i<bin.length; i++) combined[i] = bin.charCodeAt(i);
+                const iv = combined.slice(0, 12); const cipher = combined.slice(12);
+                const dec = await crypto.subtle.decrypt({name: "AES-GCM", iv}, cryptoKey, cipher); return new TextDecoder().decode(dec);
+            } catch(e) { return b64; }
+        }
+
+        window.onload = async () => {
+            await loadSavedTheme(); 
+            loadDesktopIcons();
+            
+            const loader = document.getElementById('osLoadingScreen');
+            const login = document.getElementById('loginScreen');
+
+            if (!localStorage.getItem('os_locked_v3')) {
+                document.getElementById('loginDesc').innerText = 'Lege ein neues Master-Passwort fest.';
+                document.getElementById('loginBtn').innerText = 'Einrichten';
+            }
+
+            // Ladebildschirm ausblenden, Login anzeigen
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                login.style.display = 'flex';
+                setTimeout(() => { 
+                    loader.style.visibility = 'hidden'; 
+                    login.style.opacity = '1';
+                }, 600);
+            }, 800);
+        };
+
+        function handleLoginKey(e) { if(e.key === 'Enter') handleLogin(); }
+
+        async function handleLogin() {
+            const pwd = document.getElementById('loginPwd').value; if(!pwd) return;
+            await generateKey(pwd);
+            if (!localStorage.getItem('os_locked_v3')) {
+                localStorage.setItem('os_locked_v3', await encryptText("OS_VERIFIED")); unlockSystem(pwd);
+            } else {
+                if (await decryptText(localStorage.getItem('os_locked_v3')) === "OS_VERIFIED") unlockSystem(pwd);
+                else alert("Falsches Passwort!");
+            }
+        }
+
+        function unlockSystem(pwd) {
+            osUnlocked = true;
+            globalMasterPassword = pwd; // Speichern für Apps, die erst später geladen werden (Lazy Loading)
+
+            const screen = document.getElementById('loginScreen');
+            screen.style.opacity = '0'; setTimeout(() => { screen.style.display = 'none'; }, 500);
+            
+            // Wenn der Notizen-Frame zufällig schon geladen wurde, entsperren:
+            const frame = document.getElementById('notesFrame');
+            if (frame && frame.contentWindow && frame.src.includes('.html')) {
+                frame.contentWindow.postMessage({ type: 'unlock', pwd: pwd }, '*');
+            }
+        }
+
+        let actWin = null, oX = 0, oY = 0;
+        function toggleWindow(id) { 
+            const w = document.getElementById(id);
+            
+            // LAZY LOADING CHECK
+            if (id === 'notesWindow') loadAppIframe('notesFrame');
+            if (id === 'explorerWindow') loadAppIframe('explorerFrame');
+
+            if (w.classList.contains('hidden')) { w.classList.remove('hidden'); bringToFront(w); } 
+            else { w.classList.add('hidden'); }
+            
+            const popup = document.getElementById('taskManagerPopup');
+            if (popup && !popup.classList.contains('hidden')) renderTaskManager();
+        }
+
+        function toggleFullscreen(id) { document.getElementById(id).classList.toggle('fullscreen'); }
+        function bringToFront(w) { document.querySelectorAll('.app-window').forEach(el => el.style.zIndex = 100); w.style.zIndex = 101; }
+
+        function startDrag(e, id) {
+            actWin = document.getElementById(id); bringToFront(actWin);
+            oX = e.clientX - actWin.offsetLeft; oY = e.clientY - actWin.offsetTop;
+            document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag);
+        }
+        function onDrag(e) {
+            if (!actWin) return;
+            actWin.style.left = `${Math.max(0, e.clientX - oX)}px`; actWin.style.top = `${Math.max(0, e.clientY - oY)}px`;
+        }
+        function stopDrag() { actWin = null; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'notesReady') {
+                applyTheme(currentTheme);
+                // Wenn die Notizen-App grade erst geladen wurde, schick ihr das Passwort (wenn wir entsperrt sind)
+                if (osUnlocked && globalMasterPassword) {
+                    const frame = document.getElementById('notesFrame');
+                    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'unlock', pwd: globalMasterPassword }, '*');
+                }
+                // Wenn ein File auf das Öffnen gewartet hat (Doppelklick vorm Laden)
+                if (window.pendingFileToOpen) {
+                    setTimeout(() => {
+                        const frame = document.getElementById('notesFrame');
+                        frame.contentWindow.postMessage({ type: 'openInNotes', file: window.pendingFileToOpen }, '*');
+                        window.pendingFileToOpen = null;
+                    }, 200); // Kurz warten bis DB in Notes bereit ist
+                }
+            }
+            else if (e.data && e.data.type === 'explorerReady') {
+                applyTheme(currentTheme);
+                const ex = document.getElementById('explorerFrame');
+                if (ex && ex.contentWindow) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
+            }
+            else if (e.data && e.data.type === 'fileSaved') {
+                loadDesktopIcons();
+                const ex = document.getElementById('explorerFrame');
+                if (ex && ex.contentWindow && ex.src) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
+                
+                if (e.data.filename && e.data.content) { writeToLocalFile(e.data.filename, e.data.content); }
+            } else if (e.data && e.data.type === 'fileDeleted') {
+                if (e.data.filename) deleteLocalFile(e.data.filename);
+            } else if (e.data && e.data.type === 'openInNotes') {
+                openFileInNotes(e.data.file);
+            }
+        });
+
+        const systemApps = [
+            { id: 'settingsWindow', name: '⚙️ Einstellungen', frameId: null },
+            { id: 'notesWindow', name: '📝 Notizen', frameId: 'notesFrame' },
+            { id: 'explorerWindow', name: '📁 Explorer', frameId: 'explorerFrame' }
+        ];
+
+        function toggleTaskManager() {
+            const popup = document.getElementById('taskManagerPopup');
+            if (popup.classList.contains('hidden')) { renderTaskManager(); popup.classList.remove('hidden'); } 
+            else popup.classList.add('hidden');
+        }
+
+        function renderTaskManager() {
+            const container = document.getElementById('taskList'); container.innerHTML = ''; let activeProcesses = 0;
+            systemApps.forEach(app => {
+                const win = document.getElementById(app.id);
+                if (win && !win.classList.contains('hidden')) {
+                    activeProcesses++; const item = document.createElement('div'); item.className = 'task-item';
+                    const restartHtml = app.frameId ? `<button class="task-btn" onclick="restartApp('${app.id}', '${app.frameId}')" title="Neustarten">↻</button>` : '';
+                    item.innerHTML = `<div class="task-info"><span class="task-name">${app.name}</span></div>
+                                      <div class="task-actions">${restartHtml}<button class="task-btn close" onclick="closeApp('${app.id}')" title="Beenden">✕</button></div>`;
+                    container.appendChild(item);
+                }
+            });
+            if (activeProcesses === 0) container.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding: 10px 0;">Keine Prozesse aktiv.</div>';
+        }
+
+        function restartApp(winId, frameId) {
+            const frame = document.getElementById(frameId);
+            if (frame) { 
+                // Für Lazy Loading müssen wir wieder den data-src nehmen
+                const path = frame.getAttribute('data-src') || frame.src; 
+                frame.src = 'about:blank'; setTimeout(() => { frame.src = path; }, 100); 
+            }
+            setTimeout(renderTaskManager, 150);
+        }
+
+        function closeApp(winId) { const win = document.getElementById(winId); if (win && !win.classList.contains('hidden')) toggleWindow(winId); }
+    </script>
+</body>
+</html>
