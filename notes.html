@@ -17,6 +17,20 @@
 
         body { display: flex; height: 100vh; width: 100vw; overflow: hidden; background: transparent; color: var(--text-main); user-select: none; }
 
+        /* --- APP LADEBILDSCHIRM CSS --- */
+        #appLoadingScreen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.4s ease, visibility 0.4s; color: var(--text-main);
+        }
+        .spinner {
+            width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent-color); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ------------------------------ */
+
         .notes-sidebar {
             width: 250px; min-width: 250px; background: rgba(0, 0, 0, 0.25);
             border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; padding: 16px 12px; gap: 14px;
@@ -52,7 +66,6 @@
         .note-input-title { background: transparent; border: none; font-size: 1.75rem; font-weight: 700; color: var(--text-main); outline: none; width: 100%; }
         .note-input-body { flex-grow: 1; background: transparent; border: none; color: var(--text-main); font-size: 1rem; outline: none; resize: none; line-height: 1.6; font-family: inherit; }
 
-        /* Save Modal */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
             display: flex; justify-content: center; align-items: center; z-index: 999;
@@ -66,6 +79,11 @@
     </style>
 </head>
 <body>
+
+    <div id="appLoadingScreen">
+        <div class="spinner"></div>
+        <div style="font-size: 0.9rem; font-weight: 500;">Notizen wird geladen...</div>
+    </div>
 
     <div class="notes-sidebar">
         <button class="btn-primary" onclick="createNewNote(true)">+ Neue Datei</button>
@@ -89,7 +107,6 @@
         </div>
     </div>
 
-    <!-- Modal für Speicherort-Auswahl -->
     <div class="modal-overlay" id="saveModal" style="display: none;">
         <div class="modal-box">
             <div class="modal-title">HTML-Datei speichern</div>
@@ -144,7 +161,19 @@
         function initDB() {
             const req = indexedDB.open(DB_NAME, 1);
             req.onupgradeneeded = (e) => { db = e.target.result; if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', { keyPath: 'id' }); };
-            req.onsuccess = (e) => { db = e.target.result; loadNotesFromDB(); };
+            req.onsuccess = (e) => { 
+                db = e.target.result; 
+                loadNotesFromDB(); 
+                hideLoader(); 
+            };
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('appLoadingScreen');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.visibility = 'hidden', 400);
+            }
         }
 
         async function loadNotesFromDB() {
@@ -195,22 +224,11 @@
 </html>`;
 
             const vfs = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            vfs.push({
-                id: Date.now(),
-                name: (n.title || 'Unbenannt') + '.html',
-                folder: folder,
-                content: htmlContent
-            });
-
+            vfs.push({ id: Date.now(), name: (n.title || 'Unbenannt') + '.html', folder: folder, content: htmlContent });
             localStorage.setItem('os_vfs_v1', JSON.stringify(vfs));
             closeSaveModal();
 
-            window.parent.postMessage({ 
-                type: 'fileSaved', 
-                filename: (n.title || 'Unbenannt') + '.html', 
-                content: htmlContent 
-            }, '*');
-            
+            window.parent.postMessage({ type: 'fileSaved', filename: (n.title || 'Unbenannt') + '.html', content: htmlContent }, '*');
             alert(`Erfolgreich im Explorer unter "${folder.toUpperCase()}" gespeichert!`);
         }
 
@@ -289,26 +307,19 @@
             } 
             else if (e.data && e.data.type === 'openInNotes') {
                 const file = e.data.file;
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(file.content, 'text/html');
-                
-                const h1Node = doc.querySelector('h1');
-                const divNode = doc.querySelector('div');
-                
+                const parser = new DOMParser(); const doc = parser.parseFromString(file.content, 'text/html');
+                const h1Node = doc.querySelector('h1'); const divNode = doc.querySelector('div');
                 const title = h1Node ? h1Node.innerText : file.name.replace('.html', '');
                 let body = divNode ? divNode.innerHTML : '';
-                
                 body = body.replace(/<br\s*[\/]?>/gi, '\n');
                 
                 const n = { id: Date.now(), title: title, body: body, category: 'Allgemein' };
-                notes.push(n);
-                await saveNoteToDB(n);
-                openTab(n.id, false);
-                renderNotesSidebar();
+                notes.push(n); await saveNoteToDB(n); openTab(n.id, false); renderNotesSidebar();
             }
         });
 
+        // Dem Main-OS mitteilen, dass das HTML geladen ist. 
+        // Falls schon entsperrt, schickt es direkt das Passwort.
         window.parent.postMessage({ type: 'notesReady' }, '*');
     </script>
 </body>
