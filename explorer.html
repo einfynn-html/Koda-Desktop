@@ -88,6 +88,38 @@
 
         .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-sub); margin-top: 40px; font-size: 0.9rem; }
 
+        /* Bildvorschau Modal-Fenster */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-window {
+            background: #1e1e24; border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 85vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .modal-header {
+            padding: 10px 16px; background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: 600; font-size: 0.9rem; color: var(--text-main);
+        }
+        .modal-close {
+            background: none; border: none; color: var(--text-sub);
+            font-size: 1.3rem; cursor: pointer; padding: 0 4px; line-height: 1;
+            transition: color 0.2s;
+        }
+        .modal-close:hover { color: #ef4444; }
+        .modal-body {
+            padding: 16px; display: flex; align-items: center; justify-content: center;
+            overflow: auto; background: rgba(0, 0, 0, 0.3);
+        }
+        .modal-body img {
+            max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 4px;
+        }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
@@ -112,6 +144,19 @@
         <div class="file-grid" id="fileGrid"></div>
     </div>
 
+    <!-- Modal für Bildvorschau -->
+    <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span id="modalTitle">Bildvorschau</span>
+                <button class="modal-close" onclick="closeImageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalImg" src="" alt="Vorschau">
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentFolder = 'desktop';
 
@@ -132,13 +177,11 @@
                 card.ondblclick = () => openFile(f.id);
 
                 let previewHTML = '';
-                // Prüfen ob es ein Bild ist (Type ist 'image' oder Content ist eine Data-URL für Bilder)
                 const isImg = f.type === 'image' || (f.content && f.content.startsWith('data:image'));
 
                 if (isImg) {
                     previewHTML = `<div class="file-preview"><img src="${f.content}" alt="Vorschau" loading="lazy"></div>`;
                 } else {
-                    // HTML-Tags entfernen um einen reinen Text für die Vorschau zu haben
                     let textContent = f.content || '';
                     let strippedText = textContent.replace(/<[^>]*>?/gm, '').substring(0, 120);
                     if(strippedText.trim() === '') strippedText = "Leeres Dokument";
@@ -150,7 +193,7 @@
                     <div class="file-name" title="${f.name}">${f.name}</div>
                     <div class="file-actions">
                         <button class="file-btn" onclick="event.stopPropagation(); downloadFile('${f.id}')" title="Download">⬇️</button>
-                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="Öffnen">👁️</button>
+                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="Öffnen / Vorschau">👁️</button>
                         <button class="file-btn del" onclick="event.stopPropagation(); deleteFile('${f.id}')" title="Löschen">✕</button>
                     </div>
                 `;
@@ -196,11 +239,9 @@
                     localStorage.setItem('os_vfs_v1', JSON.stringify(vfs));
                     loadFiles();
                     
-                    // Informiere das Eltern-Fenster über die neue Datei
                     window.parent.postMessage({ type: 'fileSaved' }, '*');
                 };
                 
-                // Bilder als Base64 (Data-URL) lesen, Textdateien als String
                 if (file.type.startsWith('image/')) {
                     reader.readAsDataURL(file);
                 } else {
@@ -208,7 +249,6 @@
                 }
             });
             
-            // Input-Feld leeren, damit die gleiche Datei erneut hochgeladen werden könnte
             event.target.value = '';
         }
 
@@ -234,7 +274,6 @@
             const a = document.createElement('a');
             a.download = file.name;
 
-            // Wenn es ein Bild ist (Base64) direkt verlinken, ansonsten als Blob herunterladen
             if (file.type === 'image' || (file.content && file.content.startsWith('data:image'))) {
                 a.href = file.content;
             } else {
@@ -250,9 +289,30 @@
             const file = files.find(f => f.id == id);
             if (!file) return;
 
-            // Optional: Wenn es ein Bild ist, könntest du im Parent eine andere App öffnen (z.B. ImageViewer)
-            // Aktuell wird alles an die Notizen-App (openInNotes) gesendet, wie vorher.
-            window.parent.postMessage({ type: 'openInNotes', file: file }, '*');
+            const isImg = file.type === 'image' || (file.content && file.content.startsWith('data:image'));
+
+            if (isImg) {
+                // Sende Event an übergeordnetes OS falls Bildbetrachter-App existiert
+                window.parent.postMessage({ type: 'openImage', file: file }, '*');
+                window.parent.postMessage({ type: 'openImageViewer', file: file }, '*');
+
+                // Öffne integriertes Bildvorschau-Fenster
+                openImageModal(file);
+            } else {
+                // Öffne Text- und HTML-Dateien in der Notizen-App
+                window.parent.postMessage({ type: 'openInNotes', file: file }, '*');
+            }
+        }
+
+        function openImageModal(file) {
+            document.getElementById('modalTitle').textContent = file.name || 'Bildvorschau';
+            document.getElementById('modalImg').src = file.content;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            document.getElementById('modalImg').src = '';
         }
 
         window.addEventListener('message', (e) => {
