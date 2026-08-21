@@ -88,36 +88,33 @@
 
         .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-sub); margin-top: 40px; font-size: 0.9rem; }
 
-        /* Bildvorschau Modal-Fenster */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);
-            display: none; align-items: center; justify-content: center; z-index: 1000;
+        /* Bild-Vorschaufenster (Modal) Styles */
+        .image-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
+            z-index: 9999; justify-content: center; align-items: center;
         }
-        .modal-overlay.active { display: flex; }
-        .modal-window {
+        .image-modal-window {
             background: #1e1e24; border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 85vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+            border-radius: 8px; width: 80%; max-width: 800px; max-height: 85vh;
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .modal-header {
-            padding: 10px 16px; background: rgba(255, 255, 255, 0.05);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .image-modal-header {
+            padding: 12px 16px; background: rgba(0, 0, 0, 0.3);
             display: flex; justify-content: space-between; align-items: center;
-            font-weight: 600; font-size: 0.9rem; color: var(--text-main);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.9rem; font-weight: 500;
         }
-        .modal-close {
-            background: none; border: none; color: var(--text-sub);
-            font-size: 1.3rem; cursor: pointer; padding: 0 4px; line-height: 1;
-            transition: color 0.2s;
+        .image-modal-close {
+            background: rgba(255, 255, 255, 0.1); border: none; color: #fff;
+            width: 28px; height: 28px; border-radius: 4px; cursor: pointer; transition: 0.2s;
         }
-        .modal-close:hover { color: #ef4444; }
-        .modal-body {
-            padding: 16px; display: flex; align-items: center; justify-content: center;
-            overflow: auto; background: rgba(0, 0, 0, 0.3);
+        .image-modal-close:hover { background: #ef4444; }
+        .image-modal-body {
+            padding: 20px; display: flex; justify-content: center; align-items: center;
+            overflow: auto; flex-grow: 1; background: rgba(0,0,0,0.2);
         }
-        .modal-body img {
-            max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 4px;
+        .image-modal-body img {
+            max-width: 100%; max-height: 65vh; object-fit: contain; border-radius: 4px;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -144,15 +141,14 @@
         <div class="file-grid" id="fileGrid"></div>
     </div>
 
-    <!-- Modal für Bildvorschau -->
-    <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
-        <div class="modal-window" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <span id="modalTitle">Bildvorschau</span>
-                <button class="modal-close" onclick="closeImageModal()">&times;</button>
+    <div class="image-modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div class="image-modal-window" onclick="event.stopPropagation()">
+            <div class="image-modal-header">
+                <span id="imageModalTitle">🖼️ Bildvorschau</span>
+                <button class="image-modal-close" onclick="closeImageModal()">✕</button>
             </div>
-            <div class="modal-body">
-                <img id="modalImg" src="" alt="Vorschau">
+            <div class="image-modal-body">
+                <img id="imageModalImg" src="" alt="Vorschau">
             </div>
         </div>
     </div>
@@ -193,7 +189,7 @@
                     <div class="file-name" title="${f.name}">${f.name}</div>
                     <div class="file-actions">
                         <button class="file-btn" onclick="event.stopPropagation(); downloadFile('${f.id}')" title="Download">⬇️</button>
-                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="Öffnen / Vorschau">👁️</button>
+                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="Öffnen">👁️</button>
                         <button class="file-btn del" onclick="event.stopPropagation(); deleteFile('${f.id}')" title="Löschen">✕</button>
                     </div>
                 `;
@@ -292,27 +288,25 @@
             const isImg = file.type === 'image' || (file.content && file.content.startsWith('data:image'));
 
             if (isImg) {
-                // Sende Event an übergeordnetes OS falls Bildbetrachter-App existiert
-                window.parent.postMessage({ type: 'openImage', file: file }, '*');
-                window.parent.postMessage({ type: 'openImageViewer', file: file }, '*');
-
-                // Öffne integriertes Bildvorschau-Fenster
+                // Öffnet das eingebaute Vorschaufenster
                 openImageModal(file);
+
+                // Falls ein übergeordnetes OS-System das Bild in einer eigenen App öffnen soll,
+                // kann stattdessen folgende Zeile aktiviert werden:
+                // window.parent.postMessage({ type: 'openInImageViewer', file: file }, '*');
             } else {
-                // Öffne Text- und HTML-Dateien in der Notizen-App
                 window.parent.postMessage({ type: 'openInNotes', file: file }, '*');
             }
         }
 
         function openImageModal(file) {
-            document.getElementById('modalTitle').textContent = file.name || 'Bildvorschau';
-            document.getElementById('modalImg').src = file.content;
-            document.getElementById('imageModal').classList.add('active');
+            document.getElementById('imageModalTitle').textContent = '🖼️ ' + file.name;
+            document.getElementById('imageModalImg').src = file.content;
+            document.getElementById('imageModal').style.display = 'flex';
         }
 
         function closeImageModal() {
-            document.getElementById('imageModal').classList.remove('active');
-            document.getElementById('modalImg').src = '';
+            document.getElementById('imageModal').style.display = 'none';
         }
 
         window.addEventListener('message', (e) => {
