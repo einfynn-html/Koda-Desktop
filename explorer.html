@@ -11,6 +11,7 @@
             --accent-color: #3b82f6;
             --text-main: #F8F9FA;
             --text-sub: #B2B6BA;
+            --danger-color: #ef4444;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -34,6 +35,14 @@
         .sidebar-item:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
         .sidebar-item.active { background: rgba(255, 255, 255, 0.14); color: var(--text-main); border-left: 3px solid var(--accent-color); }
 
+        .btn-danger-sidebar {
+            margin-top: auto; background: rgba(239, 68, 68, 0.2); color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4); padding: 10px 12px; border-radius: 4px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-danger-sidebar:hover { background: var(--danger-color); color: #fff; border-color: var(--danger-color); }
+
         .explorer-content { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
 
         .explorer-header {
@@ -41,8 +50,6 @@
             font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;
         }
 
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-        
         .upload-btn {
             background: var(--accent-color); color: #fff; border: none; padding: 6px 12px;
             border-radius: 4px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: 0.2s;
@@ -66,14 +73,11 @@
             display: flex; align-items: center; justify-content: center; overflow: hidden;
             background: rgba(0,0,0,0.2);
         }
-        .file-preview img {
-            width: 100%; height: 100%; object-fit: cover;
-        }
+        .file-preview img { width: 100%; height: 100%; object-fit: cover; }
         .text-preview {
             background: #fff; color: #222; font-size: 7px; padding: 6px;
             align-items: flex-start; justify-content: flex-start; text-align: left;
             word-break: break-word; line-height: 1.3; font-family: monospace;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
         }
 
         .file-name { font-size: 0.82rem; font-weight: 500; word-break: break-word; color: var(--text-main); line-height: 1.2; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
@@ -86,39 +90,25 @@
         .file-btn:hover { background: var(--accent-color); }
         .file-btn.del:hover { background: #ef4444; }
 
-        .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-sub); margin-top: 40px; font-size: 0.9rem; }
-
-        .image-modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
-            z-index: 9999; justify-content: center; align-items: center;
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 99999;
         }
-        .image-modal-window {
-            background: #1e1e24; border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px; width: 80%; max-width: 800px; max-height: 85vh;
-            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        .modal-box {
+            background: #181a20; border: 1px solid rgba(255,255,255,0.15); padding: 24px;
+            border-radius: 8px; width: 340px; display: flex; flex-direction: column; gap: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-        .image-modal-header {
-            padding: 12px 16px; background: rgba(0, 0, 0, 0.3);
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.9rem; font-weight: 500;
+        .modal-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+        .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+        .modal-input {
+            width: 100%; padding: 10px 12px; border-radius: 4px; background: #22252e;
+            color: #fff; border: 1px solid rgba(255,255,255,0.15); outline: none; font-size: 0.9rem;
         }
-        .image-modal-close {
-            background: rgba(255, 255, 255, 0.1); border: none; color: #fff;
-            width: 28px; height: 28px; border-radius: 4px; cursor: pointer; transition: 0.2s;
-        }
-        .image-modal-close:hover { background: #ef4444; }
-        .image-modal-body {
-            padding: 20px; display: flex; justify-content: center; align-items: center;
-            overflow: auto; flex-grow: 1; background: rgba(0,0,0,0.2);
-        }
-        .image-modal-body img {
-            max-width: 100%; max-height: 65vh; object-fit: contain; border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .modal-input:focus { border-color: var(--accent-color); }
+        .step-badge { font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+        .modal-btn { background: var(--accent-color); color: #fff; font-weight: 600; font-size: 0.85rem; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; }
+        .modal-btn.secondary { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -127,6 +117,8 @@
         <div class="sidebar-item active" id="nav-desktop" onclick="setFolder('desktop')">🖥️ Desktop</div>
         <div class="sidebar-item" id="nav-documents" onclick="setFolder('documents')">📁 Dokumente</div>
         <div class="sidebar-item" id="nav-images" onclick="setFolder('images')">🖼️ Bilder</div>
+        
+        <button class="btn-danger-sidebar" onclick="openDeleteEverythingModal()">⚠️ Alles löschen</button>
     </div>
 
     <div class="explorer-content">
@@ -140,14 +132,20 @@
         <div class="file-grid" id="fileGrid"></div>
     </div>
 
-    <div class="image-modal-overlay" id="imageModal" onclick="closeImageModal()">
-        <div class="image-modal-window" onclick="event.stopPropagation()">
-            <div class="image-modal-header">
-                <span id="imageModalTitle">🖼️ Bildvorschau</span>
-                <button class="image-modal-close" onclick="closeImageModal()">✕</button>
+    <!-- DELETE EVERYTHING MODAL (3-STUFIG) -->
+    <div class="modal-overlay" id="deleteModal" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-title">
+                <span>⚠️ Alles löschen</span>
+                <span class="step-badge" id="deleteStepBadge">1 / 3</span>
             </div>
-            <div class="image-modal-body">
-                <img id="imageModalImg" src="" alt="Vorschau">
+            <p style="font-size:0.85rem; color:var(--text-sub);" id="deletePromptText">
+                Bitte gib dein Passwort ein, um die Zurücksetzung einzuleiten.
+            </p>
+            <input type="password" id="deletePasswordInput" class="modal-input" placeholder="Passwort eingeben..." onkeydown="if(event.key==='Enter') processDeleteStep()">
+            <div class="modal-btn-row">
+                <button class="modal-btn secondary" onclick="closeDeleteEverythingModal()">Abbrechen</button>
+                <button class="modal-btn" style="background:#ef4444;" onclick="processDeleteStep()" id="deleteConfirmBtn">Weiter (1/3)</button>
             </div>
         </div>
     </div>
@@ -159,51 +157,24 @@
             const grid = document.getElementById('fileGrid');
             grid.innerHTML = '';
             
-            // --- FIX: Erstelle Beispieldateien, falls der Speicher komplett leer ist ---
             let rawFiles = localStorage.getItem('os_vfs_v1');
-            let allFiles = [];
-            
-            if (!rawFiles) {
-                allFiles = [
-                    { id: 'default1', name: 'Willkommen.html', content: '<h1>Willkommen!</h1><br><div>Dein Explorer funktioniert wieder!</div>', folder: 'desktop', type: 'text' },
-                    { id: 'default2', name: 'Info.txt', content: 'System läuft nun stabil und autark.', folder: 'desktop', type: 'text' }
-                ];
-                localStorage.setItem('os_vfs_v1', JSON.stringify(allFiles));
-            } else {
-                allFiles = JSON.parse(rawFiles);
-            }
-            // -------------------------------------------------------------------------
-
+            let allFiles = rawFiles ? JSON.parse(rawFiles) : [];
             const folderFiles = allFiles.filter(f => f.folder === currentFolder);
-
-            if (folderFiles.length === 0) {
-                grid.innerHTML = `<div class="empty-state">Dieser Ordner ist leer. Lade Dateien hoch oder speichere eine Notiz.</div>`;
-                return;
-            }
 
             folderFiles.forEach(f => {
                 const card = document.createElement('div');
                 card.className = 'file-card';
                 card.ondblclick = () => openFile(f.id);
 
-                let previewHTML = '';
-                const isImg = f.type === 'image' || (f.content && f.content.startsWith('data:image'));
-
-                if (isImg) {
-                    previewHTML = `<div class="file-preview"><img src="${f.content}" alt="Vorschau" loading="lazy"></div>`;
-                } else {
-                    let textContent = f.content || '';
-                    let strippedText = textContent.replace(/<[^>]*>?/gm, '').substring(0, 120);
-                    if(strippedText.trim() === '') strippedText = "Leeres Dokument";
-                    previewHTML = `<div class="file-preview text-preview">${strippedText}</div>`;
-                }
+                let previewHTML = (f.type === 'image' || (f.content && f.content.startsWith('data:image')))
+                    ? `<div class="file-preview"><img src="${f.content}" alt="Vorschau" loading="lazy"></div>`
+                    : `<div class="file-preview text-preview">${(f.content || '').replace(/<[^>]*>?/gm, '').substring(0, 120)}</div>`;
 
                 card.innerHTML = `
                     ${previewHTML}
                     <div class="file-name" title="${f.name}">${f.name}</div>
                     <div class="file-actions">
                         <button class="file-btn" onclick="event.stopPropagation(); downloadFile('${f.id}')" title="Download">⬇️</button>
-                        <button class="file-btn" onclick="event.stopPropagation(); openFile('${f.id}')" title="Öffnen">👁️</button>
                         <button class="file-btn del" onclick="event.stopPropagation(); deleteFile('${f.id}')" title="Löschen">✕</button>
                     </div>
                 `;
@@ -215,112 +186,92 @@
             currentFolder = folder;
             document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`nav-${folder}`).classList.add('active');
-            
-            const titles = { 'desktop': '🖥️ Desktop', 'documents': '📁 Dokumente', 'images': '🖼️ Bilder' };
-            document.getElementById('currentFolderName').textContent = titles[folder];
             loadFiles();
         }
 
-        function handleFileUpload(event) {
-            const files = event.target.files;
-            if (!files.length) return;
-            let vfs = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+        /* --- DELETE EVERYTHING LOGIK (3 PASSEINGABEN) --- */
+        let currentDeleteStep = 1;
+        let enteredPass1 = "", enteredPass2 = "", enteredPass3 = "";
 
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const content = e.target.result;
-                    const isImage = file.type.startsWith('image/');
-                    
-                    const newFile = {
-                        id: 'file_' + Date.now() + Math.random().toString(36).substr(2, 9),
-                        name: file.name,
-                        content: content,
-                        folder: currentFolder,
-                        type: isImage ? 'image' : 'text'
-                    };
-                    
-                    vfs.push(newFile);
-                    localStorage.setItem('os_vfs_v1', JSON.stringify(vfs));
-                    loadFiles();
-                    
-                    // Fallback try/catch falls das Hauptfenster fehlt
-                    try { window.parent.postMessage({ type: 'fileSaved' }, '*'); } catch(err){}
-                };
-                
-                if (file.type.startsWith('image/')) { reader.readAsDataURL(file); } else { reader.readAsText(file); }
-            });
-            event.target.value = '';
+        function openDeleteEverythingModal() {
+            currentDeleteStep = 1;
+            enteredPass1 = ""; enteredPass2 = ""; enteredPass3 = "";
+            updateDeleteModalUI();
+            document.getElementById('deleteModal').style.display = 'flex';
+            document.getElementById('deletePasswordInput').focus();
         }
 
-        function deleteFile(id) {
-            let files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            const fileToDelete = files.find(f => f.id == id);
-            
-            files = files.filter(f => f.id != id);
-            localStorage.setItem('os_vfs_v1', JSON.stringify(files));
-            loadFiles();
-
-            try {
-                if (fileToDelete) window.parent.postMessage({ type: 'fileDeleted', filename: fileToDelete.name }, '*');
-                window.parent.postMessage({ type: 'fileSaved' }, '*');
-            } catch(err){}
+        function closeDeleteEverythingModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            document.getElementById('deletePasswordInput').value = '';
         }
 
-        function downloadFile(id) {
-            const files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            const file = files.find(f => f.id == id);
-            if (!file) return;
+        function updateDeleteModalUI() {
+            const badge = document.getElementById('deleteStepBadge');
+            const prompt = document.getElementById('deletePromptText');
+            const btn = document.getElementById('deleteConfirmBtn');
+            const input = document.getElementById('deletePasswordInput');
+            input.value = '';
 
-            const a = document.createElement('a');
-            a.download = file.name;
-
-            if (file.type === 'image' || (file.content && file.content.startsWith('data:image'))) {
-                a.href = file.content;
-            } else {
-                const blob = new Blob([file.content], { type: 'text/html' });
-                a.href = URL.createObjectURL(blob);
+            if (currentDeleteStep === 1) {
+                badge.textContent = "1 / 3";
+                prompt.textContent = "Schritt 1: Gib dein Passwort ein, um die Zurücksetzung einzuleiten.";
+                btn.textContent = "Weiter (1/3)";
+                btn.style.background = "#ef4444";
+            } else if (currentDeleteStep === 2) {
+                badge.textContent = "2 / 3";
+                prompt.textContent = "Schritt 2: Gib dein Passwort zur Bestätigung EIN ZWEITES MAL ein.";
+                btn.textContent = "Bestätigen (2/3)";
+                btn.style.background = "#dc2626";
+            } else if (currentDeleteStep === 3) {
+                badge.textContent = "3 / 3";
+                prompt.textContent = "⚠️ LETZTE WARNUNG! Gib dein Passwort EIN DRITTES MAL ein, um ALLES unwiderruflich zu löschen.";
+                btn.textContent = "🔥 ALLES LÖSCHEN";
+                btn.style.background = "#b91c1c";
             }
-            a.click();
         }
 
-        function openFile(id) {
-            const files = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            const file = files.find(f => f.id == id);
-            if (!file) return;
+        function processDeleteStep() {
+            const val = document.getElementById('deletePasswordInput').value;
+            if (!val || val.trim() === '') {
+                alert('Bitte gib ein Passwort ein!');
+                return;
+            }
 
-            const isImg = file.type === 'image' || (file.content && file.content.startsWith('data:image'));
-
-            if (isImg) {
-                openImageModal(file);
-            } else {
-                // Versuch, im Parent-OS zu öffnen. Wenn nicht möglich, Download starten.
-                if (window.self !== window.top) {
-                    window.parent.postMessage({ type: 'openInNotes', file: file }, '*');
-                } else {
-                    alert('Hinweis: Du benutzt den Explorer eigenständig. Die Datei "' + file.name + '" wird heruntergeladen, da die verknüpfte Notizen-App hier nicht integriert ist.');
-                    downloadFile(id);
+            if (currentDeleteStep === 1) {
+                enteredPass1 = val;
+                currentDeleteStep = 2;
+                updateDeleteModalUI();
+            } else if (currentDeleteStep === 2) {
+                if (val !== enteredPass1) {
+                    alert('❌ Die Passwörter stimmen nicht überein! Vorgang abgebrochen.');
+                    closeDeleteEverythingModal();
+                    return;
                 }
+                enteredPass2 = val;
+                currentDeleteStep = 3;
+                updateDeleteModalUI();
+            } else if (currentDeleteStep === 3) {
+                if (val !== enteredPass1) {
+                    alert('❌ Die Passwörter stimmen nicht überein! Vorgang abgebrochen.');
+                    closeDeleteEverythingModal();
+                    return;
+                }
+                enteredPass3 = val;
+                executeDeleteEverything();
             }
         }
 
-        function openImageModal(file) {
-            document.getElementById('imageModalTitle').textContent = '🖼️ ' + file.name;
-            document.getElementById('imageModalImg').src = file.content;
-            document.getElementById('imageModal').style.display = 'flex';
+        function executeDeleteEverything() {
+            localStorage.clear();
+            const req = indexedDB.deleteDatabase('DesktopOS_DB_v3');
+            req.onsuccess = req.onerror = req.onblocked = () => {
+                setTimeout(() => {
+                    alert('🔥 Sämtliche Notizen, Dateien und Speicherdaten wurden erfolgreich gelöscht!');
+                    location.reload();
+                }, 400);
+            };
         }
-
-        function closeImageModal() {
-            document.getElementById('imageModal').style.display = 'none';
-        }
-
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'themeUpdate') {
-                document.documentElement.style.setProperty('--accent-color', e.data.theme.accentColor);
-            } else if (e.data && e.data.type === 'refreshFiles') {
-                loadFiles();
-            }
-        });
 
         loadFiles();
     </script>
