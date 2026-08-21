@@ -29,7 +29,6 @@
             animation: spin 0.8s linear infinite; margin-bottom: 14px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* ---------------------------------- */
 
         .notes-sidebar {
             width: 250px; min-width: 250px; background: rgba(0, 0, 0, 0.25);
@@ -80,7 +79,6 @@
 </head>
 <body>
 
-    <!-- Dynamic Loading Screen -->
     <div id="appLoadingScreen">
         <div class="spinner"></div>
         <div id="loadingText" style="font-size: 0.9rem; font-weight: 500;">Notizen werden geladen...</div>
@@ -130,18 +128,12 @@
         function showLoader(msg = "Wird verarbeitet...") {
             const loader = document.getElementById('appLoadingScreen');
             document.getElementById('loadingText').textContent = msg;
-            if (loader) {
-                loader.style.visibility = 'visible';
-                loader.style.opacity = '1';
-            }
+            if (loader) { loader.style.visibility = 'visible'; loader.style.opacity = '1'; }
         }
 
         function hideLoader() {
             const loader = document.getElementById('appLoadingScreen');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.visibility = 'hidden', 300);
-            }
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.visibility = 'hidden', 300); }
         }
 
         async function generateKey(pwd) {
@@ -179,27 +171,18 @@
         function initDB() {
             const req = indexedDB.open(DB_NAME, 1);
             req.onupgradeneeded = (e) => { db = e.target.result; if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', { keyPath: 'id' }); };
-            req.onsuccess = (e) => { 
-                db = e.target.result; 
-                loadNotesFromDB(); 
-            };
+            req.onsuccess = (e) => { db = e.target.result; loadNotesFromDB(); };
         }
 
         async function loadNotesFromDB() {
             showLoader("Notizen werden entschlüsselt...");
-            // Kurzes Verzögern, damit der Browser den Ladebildschirm zeichnen kann
             await new Promise(r => setTimeout(r, 50));
-
             const req = db.transaction('notes', 'readonly').objectStore('notes').getAll();
             req.onsuccess = async () => {
-                notes = [];
-                const rawNotes = req.result || [];
-                for (let n of rawNotes) {
-                    notes.push({ id: n.id, category: n.category, title: await decryptText(n.title), body: await decryptText(n.body) });
-                }
+                notes = []; const rawNotes = req.result || [];
+                for (let n of rawNotes) { notes.push({ id: n.id, category: n.category, title: await decryptText(n.title), body: await decryptText(n.body) }); }
                 if (notes.length > 0) openTab(notes[0].id, false); else createNewNote(true);
-                renderNotesSidebar();
-                hideLoader();
+                renderNotesSidebar(); hideLoader();
             };
         }
 
@@ -223,28 +206,11 @@
         function confirmSaveHTML() {
             const n = notes.find(n => n.id === activeTabId); if (!n) return;
             const folder = document.getElementById('saveFolderSelect').value;
-
-            const htmlContent = `<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>${n.title}</title>
-    <style>
-        body { font-family: 'Inter', sans-serif; padding: 40px; background: #111; color: #fff; line-height: 1.6; }
-        h1 { border-bottom: 1px solid #333; padding-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <h1>${n.title}</h1>
-    <div>${n.body.replace(/\n/g, '<br>')}</div>
-</body>
-</html>`;
-
+            const htmlContent = `<!DOCTYPE html>\n<html lang="de">\n<head>\n    <meta charset="UTF-8">\n    <title>${n.title}</title>\n    <style>\n        body { font-family: 'Inter', sans-serif; padding: 40px; background: #111; color: #fff; line-height: 1.6; }\n        h1 { border-bottom: 1px solid #333; padding-bottom: 10px; }\n    </style>\n</head>\n<body>\n    <h1>${n.title}</h1>\n    <div>${n.body.replace(/\\n/g, '<br>')}</div>\n</body>\n</html>`;
             const vfs = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
-            vfs.push({ id: Date.now(), name: (n.title || 'Unbenannt') + '.html', folder: folder, content: htmlContent });
+            vfs.push({ id: Date.now(), name: (n.title || 'Unbenannt') + '.html', folder: folder, content: htmlContent, type: 'text' });
             localStorage.setItem('os_vfs_v1', JSON.stringify(vfs));
             closeSaveModal();
-
             window.parent.postMessage({ type: 'fileSaved', filename: (n.title || 'Unbenannt') + '.html', content: htmlContent }, '*');
             alert(`Erfolgreich im Explorer unter "${folder.toUpperCase()}" gespeichert!`);
         }
@@ -268,17 +234,10 @@
 
         function openTab(id, edit = false) {
             const n = notes.find(item => item.id === id);
-            
-            // Wenn die Datei extrem groß ist (> 50KB), Ladebildschirm zeigen
             if (n && n.body && n.body.length > 50000) {
                 showLoader("Große Notiz wird geladen...");
-                setTimeout(() => {
-                    executeOpenTab(id, edit);
-                    hideLoader();
-                }, 50);
-            } else {
-                executeOpenTab(id, edit);
-            }
+                setTimeout(() => { executeOpenTab(id, edit); hideLoader(); }, 50);
+            } else { executeOpenTab(id, edit); }
         }
 
         function executeOpenTab(id, edit) {
@@ -339,8 +298,6 @@
             } 
             else if (e.data && e.data.type === 'openInNotes') {
                 showLoader("Große Datei verarbeiten...");
-                
-                // Asynchrone Entlastung des Threads für Ladebildschirm-Render
                 setTimeout(async () => {
                     const file = e.data.file;
                     const parser = new DOMParser(); const doc = parser.parseFromString(file.content, 'text/html');
@@ -357,6 +314,17 @@
         });
 
         window.parent.postMessage({ type: 'notesReady' }, '*');
+
+        // --- STANDALONE FIX ---
+        // Falls nach 500ms kein Signal vom Haupt-Betriebssystem kam, generieren wir lokal den Schlüssel,
+        // damit die App nicht für immer im Ladescreen steckenbleibt.
+        setTimeout(() => {
+            if (!db) {
+                console.warn("Kein Haupt-OS gefunden. Starte Notizen im Standalone-Modus...");
+                generateKey("standalone_fallback_password_!123").then(() => initDB());
+            }
+        }, 500);
+
     </script>
 </body>
 </html>
