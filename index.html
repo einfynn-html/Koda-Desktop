@@ -63,13 +63,14 @@
         .icon {
             position: absolute; width: 90px; display: flex; flex-direction: column;
             align-items: center; cursor: pointer; padding: 8px; border-radius: 4px;
-            transition: background 0.2s; user-select: none;
+            transition: background 0.2s; user-select: none; outline: none;
         }
         .icon:hover { background: rgba(255, 255, 255, 0.12); }
         .icon-img {
             width: 56px; height: 56px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(var(--glass-blur));
-            border: 1px solid rgba(255,255,255,0.18); border-radius: 4px; margin-bottom: 8px;
+            border: none; outline: none; border-radius: 6px; margin-bottom: 8px;
             display: flex; justify-content: center; align-items: center; font-size: 26px; pointer-events: none;
+            overflow: hidden;
         }
         .icon-text { font-size: 0.82rem; font-weight: 500; text-align: center; word-break: break-word; pointer-events: none; line-height: 1.2; }
 
@@ -99,6 +100,7 @@
             display: flex; align-items: center; justify-content: space-between; cursor: grab;
         }
         .window-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; pointer-events: none; }
+        .window-title img { width: 22px; height: 22px; border-radius: 4px; object-fit: cover; mix-blend-mode: screen; }
         .window-controls { display: flex; gap: 4px; align-items: center; }
         .win-btn { width: 28px; height: 26px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.05); color: var(--text-sub); cursor: pointer; }
         .win-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
@@ -176,9 +178,15 @@
     <div class="desktop" id="desktopGrid"></div>
 
     <div class="dock-container">
-        <button class="dock-item" onclick="toggleWindow('settingsWindow')"><span class="dock-icon">⚙️</span> Settings</button>
-        <button class="dock-item" onclick="toggleWindow('notesWindow')"><span class="dock-icon">📝</span> Notes</button>
-        <button class="dock-item" onclick="toggleWindow('explorerWindow')"><span class="dock-icon">📁</span> Explorer</button>
+        <button class="dock-item" onclick="toggleWindow('settingsWindow')">
+            <img src="NOT (1).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="SET"> Settings
+        </button>
+        <button class="dock-item" onclick="toggleWindow('notesWindow')">
+            <img src="NOT (3).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="NOT"> Notes
+        </button>
+        <button class="dock-item" onclick="toggleWindow('explorerWindow')">
+            <img src="NOT (2).png" style="width:20px; height:20px; border-radius:3px; object-fit:cover; mix-blend-mode: screen;" alt="EXP"> Explorer
+        </button>
     </div>
 
     <div class="sys-tray-container">
@@ -193,7 +201,9 @@
     <!-- APP WINDOWS -->
     <div class="app-window hidden" id="notesWindow">
         <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
-            <div class="window-title">📝 Notizen</div>
+            <div class="window-title">
+                <img src="NOT (3).png" alt="NOT"> Notizen
+            </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('notesWindow')">▢</button>
                 <button class="win-btn close" onclick="toggleWindow('notesWindow')">✕</button>
@@ -206,7 +216,9 @@
 
     <div class="app-window hidden" id="explorerWindow">
         <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
-            <div class="window-title">📁 Datei-Explorer</div>
+            <div class="window-title">
+                <img src="NOT (2).png" alt="EXP"> Datei-Explorer
+            </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('explorerWindow')">▢</button>
                 <button class="win-btn close" onclick="toggleWindow('explorerWindow')">✕</button>
@@ -219,7 +231,9 @@
 
     <div class="app-window hidden" id="settingsWindow">
         <div class="window-header" onmousedown="startDrag(event, 'settingsWindow')">
-            <div class="window-title">⚙️ System-Einstellungen</div>
+            <div class="window-title">
+                <img src="NOT (1).png" alt="SET"> System-Einstellungen
+            </div>
             <div class="window-controls">
                 <button class="win-btn full" onclick="toggleFullscreen('settingsWindow')">▢</button>
                 <button class="win-btn close" onclick="toggleWindow('settingsWindow')">✕</button>
@@ -227,7 +241,6 @@
         </div>
         <div class="window-body">
             <div class="settings-content">
-                <!-- LOKALER FESTPLATTEN-SPEICHER -->
                 <div class="settings-card">
                     <div class="settings-section-title">💾 Lokaler Festplatten-Speicher</div>
                     <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
@@ -289,7 +302,6 @@
     </div>
 
     <script>
-        // INDEXEDDB DATABASE FOR LARGE ASSETS (CUSTOM BACKGROUND IMAGES)
         function openDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('CleanOSDB', 1);
@@ -337,7 +349,6 @@
             } catch (e) {}
         }
 
-        // FILE SYSTEM ACCESS API INTEGRATION
         let localDirHandle = null;
 
         async function connectLocalFolder() {
@@ -525,9 +536,9 @@
             const savedPositions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
 
             const systemIcons = [
-                { id: 'sys_settings', name: 'System', icon: '⚙️', action: () => toggleWindow('settingsWindow') },
-                { id: 'sys_notes', name: 'Notizen', icon: '📝', action: () => toggleWindow('notesWindow') },
-                { id: 'sys_explorer', name: 'Explorer', icon: '📁', action: () => toggleWindow('explorerWindow') }
+                { id: 'sys_settings', name: 'System', icon: '<img src="NOT (1).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="SET">', action: () => toggleWindow('settingsWindow') },
+                { id: 'sys_notes', name: 'Notizen', icon: '<img src="NOT (3).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="NOT">', action: () => toggleWindow('notesWindow') },
+                { id: 'sys_explorer', name: 'Explorer', icon: '<img src="NOT (2).png" style="width:100%; height:100%; object-fit:cover; mix-blend-mode: screen;" alt="EXP">', action: () => toggleWindow('explorerWindow') }
             ];
 
             const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
