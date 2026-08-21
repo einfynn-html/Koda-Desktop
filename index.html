@@ -83,7 +83,6 @@
             transition: 0.2s; display: flex; align-items: center; gap: 8px;
         }
         .start-menu-btn:hover { background: var(--accent-color); }
-        /* -------------------------- */
 
         #loginScreen {
             position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(30px);
@@ -214,6 +213,7 @@
         <div style="font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.7);">System wird gestartet...</div>
     </div>
 
+    <!-- UPDATE SCREEN -->
     <div id="updateScreen">
         <h1 class="update-title">UPDATING SYSTEM</h1>
         <div class="update-bar-bg">
@@ -239,6 +239,7 @@
 
     <div class="desktop" id="desktopGrid"></div>
 
+    <!-- START MENÜ & HOME BUTTON -->
     <button class="home-btn" id="homeBtn" onclick="toggleStartMenu()">⊞</button>
     
     <div class="start-menu hidden" id="startMenu">
@@ -333,8 +334,7 @@
     </div>
 
     <script>
-        // --- HIER DEINE RAW GITHUB LINKS EINTRAGEN (Wenn du welche hast) ---
-        // Beispiel: "https://raw.githubusercontent.com/DeinName/DeinRepo/main/index.html"
+        // --- HIER DEINE RAW GITHUB LINKS EINTRAGEN (Falls vorhanden) ---
         const GITHUB_URL_INDEX = ""; 
         const GITHUB_URL_NOTES = ""; 
         const GITHUB_URL_EXPLORER = "";
@@ -350,7 +350,7 @@
             menu.classList.toggle('hidden');
         }
 
-        // Schließe Menü, wenn man woanders hin klickt
+        // Schließe Menü, wenn man außerhalb klickt
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#startMenu') && !e.target.closest('#homeBtn')) {
                 document.getElementById('startMenu').classList.add('hidden');
@@ -368,11 +368,12 @@
 
             // Update Phasen
             const steps = [
-                { msg: "Verbinde mit GitHub Server...", progress: 15, delay: 1200 },
-                { msg: "Lade index.html herunter...", progress: 40, delay: 800, url: GITHUB_URL_INDEX, file: 'index.html' },
-                { msg: "Lade notes.html herunter...", progress: 70, delay: 900, url: GITHUB_URL_NOTES, file: 'notes.html' },
-                { msg: "Lade explorer.html herunter...", progress: 90, delay: 700, url: GITHUB_URL_EXPLORER, file: 'explorer.html' },
-                { msg: "Installiere Updates...", progress: 100, delay: 1500 }
+                { msg: "Verbinde mit Server...", progress: 15, delay: 1200 },
+                { msg: "Lade index.html herunter...", progress: 35, delay: 800, url: GITHUB_URL_INDEX, file: 'index.html' },
+                { msg: "Lade notes.html herunter...", progress: 55, delay: 900, url: GITHUB_URL_NOTES, file: 'notes.html' },
+                { msg: "Lade explorer.html herunter...", progress: 75, delay: 700, url: GITHUB_URL_EXPLORER, file: 'explorer.html' },
+                { msg: "Lösche alte App-Daten & Caches...", progress: 90, delay: 1200, action: 'cleanup' },
+                { msg: "Installiere Updates...", progress: 100, delay: 1000 }
             ];
 
             let currentProgress = 0;
@@ -400,6 +401,25 @@
                         console.error("Fehler beim Herunterladen von " + step.file, e);
                     }
                 }
+
+                // --- BEREINIGUNG DES SPEICHERS (ALLES AUSSER DATEIEN & PASSWORT) ---
+                if (step.action === 'cleanup') {
+                    // Diese Dinge MÜSSEN behalten werden (Dateien, Bilder, Desktop-Anordnung & Passwort)
+                    const whitelist = ['os_vfs_v1', 'os_locked_v3']; 
+                    const keysToRemove = [];
+
+                    // Suche alle Speicherdaten, die nicht auf der Whitelist stehen
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (!whitelist.includes(key)) {
+                            keysToRemove.push(key);
+                        }
+                    }
+
+                    // Lösche den gesamten alten Datenmüll (z.B. alte Themes, alte App-Layouts)
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                    console.log("Systembereinigung abgeschlossen. Entfernte Schlüssel:", keysToRemove);
+                }
                 
                 if(step.delay) await new Promise(r => setTimeout(r, step.delay));
             }
@@ -407,10 +427,9 @@
             status.textContent = "Update erfolgreich. System wird neu gestartet...";
             await new Promise(r => setTimeout(r, 1000));
             
-            // Reload the page to apply new HTML
-            window.location.reload();
+            // Neu laden mit Cache-Buster, damit der Browser gezwungen wird, die Dateien frisch abzurufen
+            window.location.href = window.location.href.split('?')[0] + '?update=' + new Date().getTime();
         }
-        /* --------------------------- */
 
         async function connectLocalFolder() {
             try {
