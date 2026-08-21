@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notizen - App</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --accent-color: #3b82f6;
+            --text-main: #F8F9FA;
+            --text-sub: #B2B6BA;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body { display: flex; height: 100vh; width: 100vw; overflow: hidden; background: transparent; color: var(--text-main); user-select: none; }
+
+        /* --- DYNAMISCHER LADEBILDSCHIRM --- */
+        #appLoadingScreen {
+            position: fixed; inset: 0; background: rgba(15, 17, 21, 0.85); backdrop-filter: blur(12px);
+            z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.3s ease, visibility 0.3s; color: var(--text-main);
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent-color); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ---------------------------------- */
+
+        .notes-sidebar {
+            width: 250px; min-width: 250px; background: rgba(0, 0, 0, 0.25);
+            border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; padding: 16px 12px; gap: 14px;
+        }
+        .btn-primary { background: var(--accent-color); color: #fff; font-weight: 600; font-size: 0.9rem; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { filter: brightness(1.15); }
+
+        .notes-category-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-sub); margin-top: 8px; margin-bottom: 6px; font-weight: 700; padding-left: 6px; }
+        .note-item { padding: 8px 10px; border-radius: 4px; background: transparent; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; font-weight: 500; color: var(--text-sub); }
+        .note-item:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
+        .note-item.active { background: rgba(255, 255, 255, 0.14); color: var(--text-main); border-left: 3px solid var(--accent-color); }
+        .note-del-btn { border: none; background: transparent; color: #ef4444; opacity: 0; cursor: pointer; padding: 2px 6px; }
+        .note-item:hover .note-del-btn { opacity: 1; }
+
+        .notes-content-area { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
+        
+        .chrome-tab-bar { display: flex; align-items: center; background: rgba(0, 0, 0, 0.25); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 8px 12px 0 12px; gap: 4px; }
+        .chrome-tab { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(255, 255, 255, 0.04); border-radius: 4px 4px 0 0; color: var(--text-sub); font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+        .chrome-tab.active { background: rgba(255, 255, 255, 0.16); color: var(--text-main); }
+        .tab-close-btn { border: none; background: transparent; color: inherit; cursor: pointer; opacity: 0.6; font-size: 0.75rem; }
+        .tab-add-btn { border: none; background: transparent; color: var(--text-main); font-size: 1.1rem; padding: 4px 10px; cursor: pointer; }
+
+        .notes-main { flex-grow: 1; display: flex; flex-direction: column; padding: 24px; gap: 16px; overflow: auto; }
+        .editor-top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .mode-badge { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: var(--text-sub); }
+        .mode-badge.edit { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        
+        .action-btn-group { display: flex; gap: 8px; }
+        .edit-action-btn { background: var(--accent-color); color: #fff; font-weight: 600; font-size: 0.85rem; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; }
+        .edit-action-btn.secondary { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
+        .edit-action-btn.secondary:hover { background: rgba(255, 255, 255, 0.18); }
+
+        .note-input-title { background: transparent; border: none; font-size: 1.75rem; font-weight: 700; color: var(--text-main); outline: none; width: 100%; }
+        .note-input-body { flex-grow: 1; background: transparent; border: none; color: var(--text-main); font-size: 1rem; outline: none; resize: none; line-height: 1.6; font-family: inherit; }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 999;
+        }
+        .modal-box {
+            background: #181a20; border: 1px solid rgba(255,255,255,0.15); padding: 20px;
+            border-radius: 6px; width: 320px; display: flex; flex-direction: column; gap: 14px;
+        }
+        .modal-title { font-size: 1rem; font-weight: 600; }
+        .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Loading Screen -->
+    <div id="appLoadingScreen">
+        <div class="spinner"></div>
+        <div id="loadingText" style="font-size: 0.9rem; font-weight: 500;">Notizen werden geladen...</div>
+    </div>
+
+    <div class="notes-sidebar">
+        <button class="btn-primary" onclick="createNewNote(true)">+ Neue Datei</button>
+        <div id="notesCategoryList" style="overflow-y: auto; flex-grow: 1;"></div>
+    </div>
+    <div class="notes-content-area">
+        <div class="chrome-tab-bar" id="chromeTabBar">
+            <button class="tab-add-btn" onclick="createNewNote(true)">+</button>
+        </div>
+        <div class="notes-main" id="notesMainView" style="display: none;">
+            <div class="editor-top-bar">
+                <span class="mode-badge" id="modeBadge">👁️ Lesemodus</span>
+                <div class="action-btn-group">
+                    <button class="edit-action-btn secondary" onclick="openSaveModal()">🌐 In HTML speichern</button>
+                    <button class="edit-action-btn secondary" onclick="exportNoteToTXT()">⬇️ TXT</button>
+                    <button class="edit-action-btn" id="editToggleBtn" onclick="toggleEditMode()">✏️ Bearbeiten</button>
+                </div>
+            </div>
+            <input type="text" class="note-input-title" id="noteTitle" placeholder="Titel..." readonly oninput="autoSaveNote()">
+            <textarea class="note-input-body" id="noteBody" placeholder="Schreibe etwas..." readonly oninput="autoSaveNote()"></textarea>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="saveModal" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-title">HTML-Datei speichern</div>
+            <p style="font-size:0.85rem; color:var(--text-sub);">Wähle einen Zielordner für deinen Explorer:</p>
+            <select id="saveFolderSelect" style="padding:8px; border-radius:4px; background:#222; color:#fff; border:1px solid #444;">
+                <option value="desktop">🖥️ Desktop</option>
+                <option value="documents">📁 Dokumente</option>
+            </select>
+            <div class="modal-btn-row">
+                <button class="edit-action-btn secondary" onclick="closeSaveModal()">Abbrechen</button>
+                <button class="edit-action-btn" onclick="confirmSaveHTML()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SALT = "CleanDesktopOS_SecureSalt_v3";
+        let cryptoKey = null;
+
+        function showLoader(msg = "Wird verarbeitet...") {
+            const loader = document.getElementById('appLoadingScreen');
+            document.getElementById('loadingText').textContent = msg;
+            if (loader) {
+                loader.style.visibility = 'visible';
+                loader.style.opacity = '1';
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('appLoadingScreen');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.visibility = 'hidden', 300);
+            }
+        }
+
+        async function generateKey(pwd) {
+            const enc = new TextEncoder();
+            const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
+            cryptoKey = await crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: enc.encode(SALT), iterations: 100000, hash: "SHA-256" },
+                keyMat, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptText(txt) {
+            if(!cryptoKey) return txt;
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const enc = new TextEncoder().encode(txt);
+            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv}, cryptoKey, enc);
+            const combined = new Uint8Array(12 + cipher.byteLength);
+            combined.set(iv, 0); combined.set(new Uint8Array(cipher), 12);
+            let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
+        }
+
+        async function decryptText(b64) {
+            if(!cryptoKey || !b64) return b64;
+            try {
+                const bin = atob(b64); const combined = new Uint8Array(bin.length);
+                for(let i=0; i<bin.length; i++) combined[i] = bin.charCodeAt(i);
+                const iv = combined.slice(0, 12); const cipher = combined.slice(12);
+                const dec = await crypto.subtle.decrypt({name: "AES-GCM", iv}, cryptoKey, cipher);
+                return new TextDecoder().decode(dec);
+            } catch(e) { return b64; }
+        }
+
+        const DB_NAME = 'DesktopOS_DB_v3'; let db; let notes = []; let openTabIds = []; let activeTabId = null; let isEditingMap = {};
+
+        function initDB() {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = (e) => { db = e.target.result; if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', { keyPath: 'id' }); };
+            req.onsuccess = (e) => { 
+                db = e.target.result; 
+                loadNotesFromDB(); 
+            };
+        }
+
+        async function loadNotesFromDB() {
+            showLoader("Notizen werden entschlüsselt...");
+            // Kurzes Verzögern, damit der Browser den Ladebildschirm zeichnen kann
+            await new Promise(r => setTimeout(r, 50));
+
+            const req = db.transaction('notes', 'readonly').objectStore('notes').getAll();
+            req.onsuccess = async () => {
+                notes = [];
+                const rawNotes = req.result || [];
+                for (let n of rawNotes) {
+                    notes.push({ id: n.id, category: n.category, title: await decryptText(n.title), body: await decryptText(n.body) });
+                }
+                if (notes.length > 0) openTab(notes[0].id, false); else createNewNote(true);
+                renderNotesSidebar();
+                hideLoader();
+            };
+        }
+
+        async function saveNoteToDB(n) {
+            if (!db) return;
+            const enc = { id: n.id, category: n.category, title: await encryptText(n.title), body: await encryptText(n.body) };
+            db.transaction('notes', 'readwrite').objectStore('notes').put(enc);
+        }
+
+        function deleteNoteFromDB(id) { if(db) db.transaction('notes', 'readwrite').objectStore('notes').delete(id); }
+
+        function exportNoteToTXT() {
+            const n = notes.find(n => n.id === activeTabId); if (!n) return;
+            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([n.body], { type: "text/plain" }));
+            a.download = (n.title || "Notiz") + ".txt"; a.click();
+        }
+
+        function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
+        function closeSaveModal() { document.getElementById('saveModal').style.display = 'none'; }
+
+        function confirmSaveHTML() {
+            const n = notes.find(n => n.id === activeTabId); if (!n) return;
+            const folder = document.getElementById('saveFolderSelect').value;
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>${n.title}</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 40px; background: #111; color: #fff; line-height: 1.6; }
+        h1 { border-bottom: 1px solid #333; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>${n.title}</h1>
+    <div>${n.body.replace(/\n/g, '<br>')}</div>
+</body>
+</html>`;
+
+            const vfs = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            vfs.push({ id: Date.now(), name: (n.title || 'Unbenannt') + '.html', folder: folder, content: htmlContent });
+            localStorage.setItem('os_vfs_v1', JSON.stringify(vfs));
+            closeSaveModal();
+
+            window.parent.postMessage({ type: 'fileSaved', filename: (n.title || 'Unbenannt') + '.html', content: htmlContent }, '*');
+            alert(`Erfolgreich im Explorer unter "${folder.toUpperCase()}" gespeichert!`);
+        }
+
+        let saveTimeout;
+        function autoSaveNote() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const n = notes.find(n => n.id === activeTabId); if (!n) return;
+                n.title = document.getElementById('noteTitle').value || 'Unbenannt';
+                n.body = document.getElementById('noteBody').value;
+                n.category = autoDetectCategory(n.title + ' ' + n.body);
+                await saveNoteToDB(n); renderNotesSidebar(); renderTabs();
+            }, 500);
+        }
+
+        function createNewNote(edit = true) {
+            const n = { id: Date.now(), title: 'Neue Notiz', body: '', category: 'Allgemein' };
+            notes.push(n); openTab(n.id, edit); saveNoteToDB(n); renderNotesSidebar();
+        }
+
+        function openTab(id, edit = false) {
+            const n = notes.find(item => item.id === id);
+            
+            // Wenn die Datei extrem groß ist (> 50KB), Ladebildschirm zeigen
+            if (n && n.body && n.body.length > 50000) {
+                showLoader("Große Notiz wird geladen...");
+                setTimeout(() => {
+                    executeOpenTab(id, edit);
+                    hideLoader();
+                }, 50);
+            } else {
+                executeOpenTab(id, edit);
+            }
+        }
+
+        function executeOpenTab(id, edit) {
+            if (!openTabIds.includes(id)) openTabIds.push(id);
+            activeTabId = id; if (isEditingMap[id] === undefined || edit) isEditingMap[id] = edit;
+            renderTabs(); renderEditor();
+        }
+
+        function closeTab(e, id) {
+            e.stopPropagation(); openTabIds = openTabIds.filter(i => i !== id);
+            if (activeTabId === id) activeTabId = openTabIds.length ? openTabIds[openTabIds.length - 1] : null;
+            renderTabs(); renderEditor();
+        }
+
+        function toggleEditMode() { if (activeTabId) { isEditingMap[activeTabId] = !isEditingMap[activeTabId]; renderEditor(); } }
+        function autoDetectCategory(txt) { const l = txt.toLowerCase(); return l.includes('arbeit') ? 'Arbeit' : l.includes('idee') ? 'Ideen' : 'Allgemein'; }
+        function deleteNote(e, id) { e.stopPropagation(); notes = notes.filter(n => n.id !== id); deleteNoteFromDB(id); closeTab(e, id); renderNotesSidebar(); }
+
+        function renderTabs() {
+            const tb = document.getElementById('chromeTabBar'); const add = tb.querySelector('.tab-add-btn'); tb.innerHTML = '';
+            openTabIds.forEach(id => {
+                const n = notes.find(n => n.id === id); if (!n) return;
+                const t = document.createElement('div'); t.className = `chrome-tab ${id === activeTabId ? 'active' : ''}`; t.onclick = () => openTab(id, false);
+                t.innerHTML = `<span>${n.title || 'Unbenannt'}</span><button class="tab-close-btn" onclick="closeTab(event, ${id})">✕</button>`;
+                tb.appendChild(t);
+            }); tb.appendChild(add);
+        }
+
+        function renderEditor() {
+            const mv = document.getElementById('notesMainView'); const ti = document.getElementById('noteTitle'); const bi = document.getElementById('noteBody');
+            if (!activeTabId) { mv.style.display = 'none'; return; } mv.style.display = 'flex';
+            const n = notes.find(n => n.id === activeTabId); if (!n) return;
+            const ed = !!isEditingMap[activeTabId]; ti.value = n.title; bi.value = n.body;
+            if (ed) { ti.removeAttribute('readonly'); bi.removeAttribute('readonly'); document.getElementById('modeBadge').textContent = '✏️ Edit'; document.getElementById('editToggleBtn').textContent = '💾 Speichern'; } 
+            else { ti.setAttribute('readonly', '1'); bi.setAttribute('readonly', '1'); document.getElementById('modeBadge').textContent = '👁️ Lesen'; document.getElementById('editToggleBtn').textContent = '✏️ Bearbeiten'; }
+        }
+
+        function renderNotesSidebar() {
+            const c = document.getElementById('notesCategoryList'); c.innerHTML = '';
+            ['Allgemein', 'Arbeit', 'Ideen'].forEach(cat => {
+                const cn = notes.filter(n => n.category === cat);
+                if (cn.length) {
+                    const t = document.createElement('div'); t.className = 'notes-category-title'; t.textContent = cat; c.appendChild(t);
+                    cn.forEach(n => {
+                        const i = document.createElement('div'); i.className = `note-item ${n.id === activeTabId ? 'active' : ''}`; i.onclick = () => openTab(n.id, false);
+                        i.innerHTML = `<span>${n.title}</span><button class="note-del-btn" onclick="deleteNote(event, ${n.id})">✕</button>`;
+                        c.appendChild(i);
+                    });
+                }
+            });
+        }
+
+        window.addEventListener('message', async (e) => {
+            if (e.data && e.data.type === 'unlock') {
+                await generateKey(e.data.pwd); initDB();
+            } else if (e.data && e.data.type === 'themeUpdate') {
+                document.documentElement.style.setProperty('--accent-color', e.data.theme.accentColor);
+            } 
+            else if (e.data && e.data.type === 'openInNotes') {
+                showLoader("Große Datei verarbeiten...");
+                
+                // Asynchrone Entlastung des Threads für Ladebildschirm-Render
+                setTimeout(async () => {
+                    const file = e.data.file;
+                    const parser = new DOMParser(); const doc = parser.parseFromString(file.content, 'text/html');
+                    const h1Node = doc.querySelector('h1'); const divNode = doc.querySelector('div');
+                    const title = h1Node ? h1Node.innerText : file.name.replace('.html', '');
+                    let body = divNode ? divNode.innerHTML : '';
+                    body = body.replace(/<br\s*[\/]?>/gi, '\n');
+                    
+                    const n = { id: Date.now(), title: title, body: body, category: 'Allgemein' };
+                    notes.push(n); await saveNoteToDB(n); openTab(n.id, false); renderNotesSidebar();
+                    hideLoader();
+                }, 50);
+            }
+        });
+
+        window.parent.postMessage({ type: 'notesReady' }, '*');
+    </script>
+</body>
+</html>
