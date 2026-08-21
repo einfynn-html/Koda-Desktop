@@ -83,6 +83,8 @@
             transition: 0.2s; display: flex; align-items: center; gap: 8px;
         }
         .start-menu-btn:hover { background: var(--accent-color); }
+        .start-menu-btn.danger { color: #f87171; }
+        .start-menu-btn.danger:hover { background: #ef4444; color: #fff; }
 
         #loginScreen {
             position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(30px);
@@ -245,6 +247,8 @@
     <div class="start-menu hidden" id="startMenu">
         <div class="start-menu-header">Clean OS Menü</div>
         <button class="start-menu-btn" onclick="startSystemUpdate()">🔄 Update ALL</button>
+        <!-- NEUER BUTTON: FACTORY RESET -->
+        <button class="start-menu-btn danger" onclick="factoryReset()">⚠️ Factory Reset</button>
     </div>
 
     <div class="dock-container">
@@ -344,7 +348,7 @@
         let globalMasterPassword = null; 
         let localDirHandle = null;
 
-        /* --- UPDATE SYSTEM LOGIK --- */
+        /* --- MENÜ SYSTEM LOGIK --- */
         function toggleStartMenu() {
             const menu = document.getElementById('startMenu');
             menu.classList.toggle('hidden');
@@ -357,6 +361,40 @@
             }
         });
 
+        /* --- NEU: FACTORY RESET (3x Passwort nötig) --- */
+        async function factoryReset() {
+            document.getElementById('startMenu').classList.add('hidden');
+            
+            if (!globalMasterPassword) {
+                alert("Fehler: System ist noch nicht entsperrt.");
+                return;
+            }
+
+            for (let i = 1; i <= 3; i++) {
+                let input = prompt(`⚠️ ACHTUNG: Dies löscht ALLE Notizen, Bilder und Einstellungen unwiderruflich!\n\nBitte Master-Passwort eingeben, um zu bestätigen (${i}/3):`);
+                
+                if (input === null) {
+                    alert("Zurücksetzen sicherheitshalber abgebrochen.");
+                    return; 
+                }
+                
+                if (input !== globalMasterPassword) {
+                    alert("Falsches Passwort! Zurücksetzen sicherheitshalber abgebrochen.");
+                    return;
+                }
+            }
+
+            // Wenn die Schleife ohne 'return' durchlief, wurde das Passwort 3x korrekt eingegeben
+            alert("Passwort 3x korrekt. Das System wird nun vollständig gelöscht...");
+            
+            // Lokalen Speicher (Browser-Daten) restlos leeren
+            localStorage.clear();
+            
+            // Seite komplett neu laden, damit das System als "Neu" startet
+            window.location.href = window.location.href.split('?')[0]; 
+        }
+
+        /* --- UPDATE LOGIK --- */
         async function startSystemUpdate() {
             document.getElementById('startMenu').classList.add('hidden');
             const updateScreen = document.getElementById('updateScreen');
@@ -382,14 +420,12 @@
                 status.textContent = step.msg;
                 bar.style.width = step.progress + '%';
                 
-                // Animation für die Prozentzahl
                 while(currentProgress < step.progress) {
                     currentProgress++;
                     pct.textContent = currentProgress + '%';
                     await new Promise(r => setTimeout(r, 15)); 
                 }
 
-                // Echter Download, falls Links hinterlegt sind und Ordner verbunden ist
                 if (step.url && step.url.trim() !== "" && localDirHandle) {
                     try {
                         let res = await fetch(step.url);
@@ -402,23 +438,14 @@
                     }
                 }
 
-                // --- BEREINIGUNG DES SPEICHERS (ALLES AUSSER DATEIEN & PASSWORT) ---
                 if (step.action === 'cleanup') {
-                    // Diese Dinge MÜSSEN behalten werden (Dateien, Bilder, Desktop-Anordnung & Passwort)
                     const whitelist = ['os_vfs_v1', 'os_locked_v3']; 
                     const keysToRemove = [];
-
-                    // Suche alle Speicherdaten, die nicht auf der Whitelist stehen
                     for (let i = 0; i < localStorage.length; i++) {
                         const key = localStorage.key(i);
-                        if (!whitelist.includes(key)) {
-                            keysToRemove.push(key);
-                        }
+                        if (!whitelist.includes(key)) keysToRemove.push(key);
                     }
-
-                    // Lösche den gesamten alten Datenmüll (z.B. alte Themes, alte App-Layouts)
                     keysToRemove.forEach(k => localStorage.removeItem(k));
-                    console.log("Systembereinigung abgeschlossen. Entfernte Schlüssel:", keysToRemove);
                 }
                 
                 if(step.delay) await new Promise(r => setTimeout(r, step.delay));
@@ -426,8 +453,6 @@
 
             status.textContent = "Update erfolgreich. System wird neu gestartet...";
             await new Promise(r => setTimeout(r, 1000));
-            
-            // Neu laden mit Cache-Buster, damit der Browser gezwungen wird, die Dateien frisch abzurufen
             window.location.href = window.location.href.split('?')[0] + '?update=' + new Date().getTime();
         }
 
