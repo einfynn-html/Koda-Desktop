@@ -3,277 +3,741 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datei-Explorer</title>
+    <title>Clean Desktop OS - Modern Redesign</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         :root {
+            --main-bg: linear-gradient(135deg, #0f1115 0%, #1f242d 100%);
+            --glass-base: #111315;
+            --glass-base-rgb: 17, 19, 21;
+            --glass-opacity: 0.70;
+            --glass-blur: 24px;
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
             --accent-color: #3b82f6;
             --text-main: #F8F9FA;
             --text-sub: #B2B6BA;
-            --danger-color: #ef4444;
+            --ui-radius: 4px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
         body {
-            display: flex; height: 100vh; width: 100vw;
-            overflow: hidden; background: transparent; color: var(--text-main); user-select: none;
+            height: 100vh; width: 100vw; overflow: hidden; background: var(--main-bg);
+            background-size: cover; background-position: center; background-attachment: fixed;
+            background-repeat: no-repeat; display: flex; flex-direction: column;
+            user-select: none; color: var(--text-main); transition: background 0.6s ease;
         }
 
-        .explorer-sidebar {
-            width: 220px; min-width: 220px; background: rgba(0, 0, 0, 0.25);
-            border-right: 1px solid rgba(255,255,255,0.06); padding: 16px 12px;
-            display: flex; flex-direction: column; gap: 8px;
+        #loginScreen {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(30px);
+            z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .login-box {
+            background: rgba(20, 22, 26, 0.85); padding: 40px 36px; border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15); text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); width: 380px;
+        }
+        .login-box h2 { margin-bottom: 8px; font-weight: 600; font-size: 1.5rem; }
+        .login-box p { color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px; }
+        .login-box input {
+            width: 100%; padding: 14px 18px; border-radius: 4px; border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 1rem; outline: none; text-align: center;
+        }
+        .login-box input:focus { border-color: var(--accent-color); }
+        .login-box button {
+            margin-top: 20px; width: 100%; padding: 14px; border-radius: 4px;
+            background: var(--accent-color); color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer;
         }
 
-        .sidebar-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-            border-radius: 4px; color: var(--text-sub); font-size: 0.9rem; font-weight: 500;
-            cursor: pointer; transition: all 0.2s;
+        .clock-wrapper {
+            position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+            text-align: center; cursor: pointer; padding: 12px 24px; border-radius: 4px; z-index: 10;
         }
-        .sidebar-item:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
-        .sidebar-item.active { background: rgba(255, 255, 255, 0.14); color: var(--text-main); border-left: 3px solid var(--accent-color); }
+        #clock { font-size: 4rem; font-weight: 300; line-height: 1; }
+        #date { font-size: 1.05rem; font-weight: 500; color: rgba(255,255,255,0.85); margin-top: 6px; }
 
-        .btn-danger-sidebar {
-            margin-top: auto; background: rgba(239, 68, 68, 0.2); color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.4); padding: 10px 12px; border-radius: 4px;
-            font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
+        .desktop { position: absolute; inset: 0; pointer-events: auto; }
+        .icon {
+            position: absolute; width: 90px; display: flex; flex-direction: column;
+            align-items: center; cursor: pointer; padding: 8px; border-radius: 4px;
+            transition: background 0.2s; user-select: none;
         }
-        .btn-danger-sidebar:hover { background: var(--danger-color); color: #fff; border-color: var(--danger-color); }
-
-        .explorer-content { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
-
-        .explorer-header {
-            padding: 14px 20px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255,255,255,0.06);
-            font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+        .icon:hover { background: rgba(255, 255, 255, 0.12); }
+        .icon-img {
+            width: 56px; height: 56px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 4px; margin-bottom: 8px;
+            display: flex; justify-content: center; align-items: center; font-size: 26px; pointer-events: none;
         }
+        .icon-text { font-size: 0.82rem; font-weight: 500; text-align: center; word-break: break-word; pointer-events: none; line-height: 1.2; }
 
-        .upload-btn {
-            background: var(--accent-color); color: #fff; border: none; padding: 6px 12px;
-            border-radius: 4px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+        .dock-container {
+            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 8px; padding: 8px 14px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
+            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: 6px; z-index: 10000;
         }
-        .upload-btn:hover { filter: brightness(1.1); }
+        .dock-item {
+            display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 4px;
+            border: 1px solid transparent; background: transparent; color: var(--text-main); font-size: 0.95rem; cursor: pointer;
+        }
+        .dock-item:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-2px); }
 
-        .file-grid {
-            padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 16px; overflow-y: auto; align-content: start; flex-grow: 1;
+        .app-window {
+            position: absolute; width: 880px; height: 600px; top: 80px; left: 150px;
+            background: rgba(var(--glass-base-rgb), var(--glass-opacity)); 
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border); border-radius: var(--ui-radius);
+            box-shadow: var(--glass-shadow); display: flex; flex-direction: column; overflow: hidden; z-index: 100;
         }
+        .app-window.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+        .app-window.fullscreen { top: 8px !important; left: 8px !important; width: calc(100vw - 16px) !important; height: calc(100vh - 16px) !important; }
 
-        .file-card {
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            padding: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 6px; cursor: pointer; transition: all 0.2s; position: relative; text-align: center;
+        .window-header {
+            height: 42px; padding: 0 12px; background: rgba(0, 0, 0, 0.35); border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: space-between; cursor: grab;
         }
-        .file-card:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.18); transform: translateY(-2px); }
+        .window-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; pointer-events: none; }
+        .window-controls { display: flex; gap: 4px; align-items: center; }
+        .win-btn { width: 28px; height: 26px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.05); color: var(--text-sub); cursor: pointer; }
+        .win-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+        .win-btn.close:hover { background: #ef4444; }
+
+        .window-body { flex-grow: 1; overflow: hidden; color: var(--text-main); display: flex; }
+        .snap-preview { position: fixed; background: rgba(255, 255, 255, 0.08); border: 2px solid var(--accent-color); backdrop-filter: blur(12px); border-radius: 4px; pointer-events: none; z-index: 999; opacity: 0; }
+        .snap-preview.visible { opacity: 1; }
+
+        .settings-content { padding: 24px; width: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .settings-card { background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); }
+        .settings-section-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; }
+        .setting-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 12px 14px; border-radius: 4px; }
+        .setting-row.full-width { grid-column: span 2; flex-direction: column; align-items: flex-start; gap: 10px; }
         
-        .file-preview {
-            width: 100%; height: 90px; margin-bottom: 10px; border-radius: 4px;
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            background: rgba(0,0,0,0.2);
-        }
-        .file-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .text-preview {
-            background: #fff; color: #222; font-size: 7px; padding: 6px;
-            align-items: flex-start; justify-content: flex-start; text-align: left;
-            word-break: break-word; line-height: 1.3; font-family: monospace;
+        input[type="range"] { accent-color: var(--accent-color); cursor: pointer; }
+        input[type="color"] { border: none; background: transparent; cursor: pointer; width: 36px; height: 36px; }
+        select.ui-select, input.ui-input { width: 100%; padding: 12px 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: var(--text-main); outline: none; }
+        select.ui-select option { background: #1a1c23; }
+        .file-upload-btn { background: rgba(255,255,255,0.04); border: 2px dashed rgba(255,255,255,0.18); padding: 14px; width: 100%; text-align: center; border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 500; }
+        .file-upload-btn:hover { background: rgba(255,255,255,0.08); }
+        input[type="file"] { display: none; }
+
+        .sys-tray-container {
+            position: absolute; bottom: 16px; right: 16px; display: flex; align-items: center;
+            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
+            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
+            border-radius: 6px; padding: 6px 12px; z-index: 10000;
         }
 
-        .file-name { font-size: 0.82rem; font-weight: 500; word-break: break-word; color: var(--text-main); line-height: 1.2; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-        
-        .file-actions { display: flex; gap: 6px; margin-top: 10px; width: 100%; justify-content: center; }
-        .file-btn {
-            border: none; background: rgba(255,255,255,0.1); color: #fff; padding: 5px;
-            border-radius: 3px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; flex-grow: 1;
+        .sys-tray-btn {
+            background: transparent; border: none; color: var(--text-main); font-size: 1.2rem;
+            font-weight: bold; cursor: pointer; transition: transform 0.2s; padding: 4px;
         }
-        .file-btn:hover { background: var(--accent-color); }
-        .file-btn.del:hover { background: #ef4444; }
+        .sys-tray-btn:hover { transform: scale(1.1); }
 
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center; z-index: 99999;
+        .task-manager-popup {
+            position: absolute; bottom: 60px; right: 16px; width: 260px;
+            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
+            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
+            border-radius: 8px; box-shadow: var(--glass-shadow); padding: 14px; z-index: 10001;
+            display: flex; flex-direction: column; gap: 10px; transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        .modal-box {
-            background: #181a20; border: 1px solid rgba(255,255,255,0.15); padding: 24px;
-            border-radius: 8px; width: 340px; display: flex; flex-direction: column; gap: 14px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        .modal-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
-        .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
-        .modal-input {
-            width: 100%; padding: 10px 12px; border-radius: 4px; background: #22252e;
-            color: #fff; border: 1px solid rgba(255,255,255,0.15); outline: none; font-size: 0.9rem;
-        }
-        .modal-input:focus { border-color: var(--accent-color); }
-        .step-badge { font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
-        .modal-btn { background: var(--accent-color); color: #fff; font-weight: 600; font-size: 0.85rem; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; }
-        .modal-btn.secondary { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
+        .task-manager-popup.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+        .task-manager-header { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .task-info { display: flex; align-items: center; }
+        .task-name { font-weight: 600; font-size: 0.85rem; color: var(--text-main); }
+        .task-actions { display: flex; gap: 6px; }
+        .task-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        .task-btn:hover { background: var(--accent-color); }
+        .task-btn.close:hover { background: #ef4444; }
     </style>
 </head>
 <body>
 
-    <div class="explorer-sidebar">
-        <div class="sidebar-item active" id="nav-desktop" onclick="setFolder('desktop')">🖥️ Desktop</div>
-        <div class="sidebar-item" id="nav-documents" onclick="setFolder('documents')">📁 Dokumente</div>
-        <div class="sidebar-item" id="nav-images" onclick="setFolder('images')">🖼️ Bilder</div>
-        
-        <button class="btn-danger-sidebar" onclick="openDeleteEverythingModal()">⚠️ Alles löschen</button>
+    <!-- Lock Screen -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2 id="loginTitle">System gesperrt</h2>
+            <p id="loginDesc">Bitte Master-Passwort eingeben</p>
+            <input type="password" id="loginPwd" placeholder="Passwort..." onkeypress="handleLoginKey(event)">
+            <button id="loginBtn" onclick="handleLogin()">Entsperren</button>
+        </div>
     </div>
 
-    <div class="explorer-content">
-        <div class="explorer-header">
-            <span id="currentFolderName">🖥️ Desktop</span>
-            <div class="header-actions">
-                <input type="file" id="fileUpload" accept="image/*, text/*, .html" style="display: none;" onchange="handleFileUpload(event)" multiple>
-                <button class="upload-btn" onclick="document.getElementById('fileUpload').click()">+ Hochladen</button>
+    <div class="snap-preview" id="snapPreview"></div>
+
+    <div class="clock-wrapper" ondblclick="toggleWindow('settingsWindow')">
+        <div id="clock">00:00</div>
+        <div id="date">Laden...</div>
+    </div>
+
+    <div class="desktop" id="desktopGrid"></div>
+
+    <div class="dock-container">
+        <button class="dock-item" onclick="toggleWindow('settingsWindow')"><span class="dock-icon">⚙️</span> Settings</button>
+        <button class="dock-item" onclick="toggleWindow('notesWindow')"><span class="dock-icon">📝</span> Notes</button>
+        <button class="dock-item" onclick="toggleWindow('explorerWindow')"><span class="dock-icon">📁</span> Explorer</button>
+    </div>
+
+    <div class="sys-tray-container">
+        <button class="sys-tray-btn" onclick="toggleTaskManager()">^</button>
+    </div>
+
+    <div class="task-manager-popup hidden" id="taskManagerPopup">
+        <div class="task-manager-header">⚙️ Aktive Prozesse</div>
+        <div id="taskList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+
+    <!-- APP WINDOWS -->
+    <div class="app-window hidden" id="notesWindow">
+        <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
+            <div class="window-title">📝 Notizen</div>
+            <div class="window-controls">
+                <button class="win-btn full" onclick="toggleFullscreen('notesWindow')">▢</button>
+                <button class="win-btn close" onclick="toggleWindow('notesWindow')">✕</button>
             </div>
         </div>
-        <div class="file-grid" id="fileGrid"></div>
+        <div class="window-body" style="padding: 0; display: block;">
+            <iframe id="notesFrame" src="notes.html" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
+        </div>
     </div>
 
-    <!-- DELETE EVERYTHING MODAL (3-STUFIG) -->
-    <div class="modal-overlay" id="deleteModal" style="display: none;">
-        <div class="modal-box">
-            <div class="modal-title">
-                <span>⚠️ Alles löschen</span>
-                <span class="step-badge" id="deleteStepBadge">1 / 3</span>
+    <div class="app-window hidden" id="explorerWindow">
+        <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
+            <div class="window-title">📁 Datei-Explorer</div>
+            <div class="window-controls">
+                <button class="win-btn full" onclick="toggleFullscreen('explorerWindow')">▢</button>
+                <button class="win-btn close" onclick="toggleWindow('explorerWindow')">✕</button>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-sub);" id="deletePromptText">
-                Bitte gib dein Passwort ein, um die Zurücksetzung einzuleiten.
-            </p>
-            <input type="password" id="deletePasswordInput" class="modal-input" placeholder="Passwort eingeben..." onkeydown="if(event.key==='Enter') processDeleteStep()">
-            <div class="modal-btn-row">
-                <button class="modal-btn secondary" onclick="closeDeleteEverythingModal()">Abbrechen</button>
-                <button class="modal-btn" style="background:#ef4444;" onclick="processDeleteStep()" id="deleteConfirmBtn">Weiter (1/3)</button>
+        </div>
+        <div class="window-body" style="padding: 0; display: block;">
+            <iframe id="explorerFrame" src="explorer.html" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="settingsWindow">
+        <div class="window-header" onmousedown="startDrag(event, 'settingsWindow')">
+            <div class="window-title">⚙️ System-Einstellungen</div>
+            <div class="window-controls">
+                <button class="win-btn full" onclick="toggleFullscreen('settingsWindow')">▢</button>
+                <button class="win-btn close" onclick="toggleWindow('settingsWindow')">✕</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="settings-content">
+                <!-- LOKALER FESTPLATTEN-SPEICHER -->
+                <div class="settings-card">
+                    <div class="settings-section-title">💾 Lokaler Festplatten-Speicher</div>
+                    <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
+                        Damit Änderungen als echte Dateien auf der Festplatte gespeichert werden, verbinde deinen aktuellen Ordner einmalig.
+                    </p>
+                    <button class="file-upload-btn" onclick="connectLocalFolder()">📁 Speicher-Ordner verbinden</button>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-section-title">🖼️ KI-Hintergründe & Themes</div>
+                    <div class="setting-grid">
+                        <div class="setting-row full-width">
+                            <label>Design-Preset auswählen</label>
+                            <select class="ui-select" id="themePresetSelect" onchange="applyPreset()">
+                                <option value="original">Original Dark Minimalist</option>
+                                <option value="abstract">Generative Waves (KI)</option>
+                                <option value="cyberpunk">Cyberpunk Neon (KI)</option>
+                                <option value="forest">Mystic Forest (KI)</option>
+                                <option value="space">Deep Cosmic Space (KI)</option>
+                                <option value="sunset">Vaporwave Sunset (KI)</option>
+                                <option value="ocean">Deep Ocean Bioluminescence (KI)</option>
+                                <option value="aurora">Arctic Aurora (KI)</option>
+                                <option value="lava">Volcanic Magma (KI)</option>
+                                <option value="hologram">Holographic Fluid (KI)</option>
+                            </select>
+                        </div>
+                        <div class="setting-row full-width">
+                            <label>Hintergrundbild (URL)</label>
+                            <input type="text" class="ui-input" id="customBgUrl" placeholder="https://..." onchange="handleUrlUpload()">
+                        </div>
+                        <div class="setting-row full-width">
+                            <label class="file-upload-btn">
+                                📁 Eigenes lokales Bild hochladen
+                                <input type="file" id="customBgFile" accept="image/*" onchange="handleFileUpload(event)">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-section-title">🎨 Personalisierung</div>
+                    <div class="setting-grid">
+                        <div class="setting-row"><label>Hintergrund Farbe 1</label><input type="color" id="pickerBg1" onchange="updateColorsManually()"></div>
+                        <div class="setting-row"><label>Hintergrund Farbe 2</label><input type="color" id="pickerBg2" onchange="updateColorsManually()"></div>
+                        <div class="setting-row"><label>Fenster-Glas Basis</label><input type="color" id="pickerGlass" onchange="updateCustomTheme()"></div>
+                        <div class="setting-row"><label>Akzentfarbe</label><input type="color" id="pickerAccent" onchange="updateCustomTheme()"></div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-section-title">✨ Effekte & Transparenz</div>
+                    <div class="setting-grid">
+                        <div class="setting-row"><label>Glas-Deckkraft</label><input type="range" min="0.1" max="0.95" step="0.05" id="sliderOpacity" oninput="updateCustomTheme()"></div>
+                        <div class="setting-row"><label>Unschärfe (Blur)</label><input type="range" min="0" max="50" step="2" id="sliderBlur" oninput="updateCustomTheme()"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentFolder = 'desktop';
-
-        function loadFiles() {
-            const grid = document.getElementById('fileGrid');
-            grid.innerHTML = '';
-            
-            let rawFiles = localStorage.getItem('os_vfs_v1');
-            let allFiles = rawFiles ? JSON.parse(rawFiles) : [];
-            const folderFiles = allFiles.filter(f => f.folder === currentFolder);
-
-            folderFiles.forEach(f => {
-                const card = document.createElement('div');
-                card.className = 'file-card';
-                card.ondblclick = () => openFile(f.id);
-
-                let previewHTML = (f.type === 'image' || (f.content && f.content.startsWith('data:image')))
-                    ? `<div class="file-preview"><img src="${f.content}" alt="Vorschau" loading="lazy"></div>`
-                    : `<div class="file-preview text-preview">${(f.content || '').replace(/<[^>]*>?/gm, '').substring(0, 120)}</div>`;
-
-                card.innerHTML = `
-                    ${previewHTML}
-                    <div class="file-name" title="${f.name}">${f.name}</div>
-                    <div class="file-actions">
-                        <button class="file-btn" onclick="event.stopPropagation(); downloadFile('${f.id}')" title="Download">⬇️</button>
-                        <button class="file-btn del" onclick="event.stopPropagation(); deleteFile('${f.id}')" title="Löschen">✕</button>
-                    </div>
-                `;
-                grid.appendChild(card);
+        // INDEXEDDB DATABASE FOR LARGE ASSETS (CUSTOM BACKGROUND IMAGES)
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('CleanOSDB', 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('assets')) {
+                        db.createObjectStore('assets');
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
             });
         }
 
-        function setFolder(folder) {
-            currentFolder = folder;
-            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`nav-${folder}`).classList.add('active');
-            loadFiles();
-        }
-
-        /* --- DELETE EVERYTHING LOGIK (3 PASSEINGABEN) --- */
-        let currentDeleteStep = 1;
-        let enteredPass1 = "", enteredPass2 = "", enteredPass3 = "";
-
-        function openDeleteEverythingModal() {
-            currentDeleteStep = 1;
-            enteredPass1 = ""; enteredPass2 = ""; enteredPass3 = "";
-            updateDeleteModalUI();
-            document.getElementById('deleteModal').style.display = 'flex';
-            document.getElementById('deletePasswordInput').focus();
-        }
-
-        function closeDeleteEverythingModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-            document.getElementById('deletePasswordInput').value = '';
-        }
-
-        function updateDeleteModalUI() {
-            const badge = document.getElementById('deleteStepBadge');
-            const prompt = document.getElementById('deletePromptText');
-            const btn = document.getElementById('deleteConfirmBtn');
-            const input = document.getElementById('deletePasswordInput');
-            input.value = '';
-
-            if (currentDeleteStep === 1) {
-                badge.textContent = "1 / 3";
-                prompt.textContent = "Schritt 1: Gib dein Passwort ein, um die Zurücksetzung einzuleiten.";
-                btn.textContent = "Weiter (1/3)";
-                btn.style.background = "#ef4444";
-            } else if (currentDeleteStep === 2) {
-                badge.textContent = "2 / 3";
-                prompt.textContent = "Schritt 2: Gib dein Passwort zur Bestätigung EIN ZWEITES MAL ein.";
-                btn.textContent = "Bestätigen (2/3)";
-                btn.style.background = "#dc2626";
-            } else if (currentDeleteStep === 3) {
-                badge.textContent = "3 / 3";
-                prompt.textContent = "⚠️ LETZTE WARNUNG! Gib dein Passwort EIN DRITTES MAL ein, um ALLES unwiderruflich zu löschen.";
-                btn.textContent = "🔥 ALLES LÖSCHEN";
-                btn.style.background = "#b91c1c";
+        async function saveCustomBgAsset(dataUrl) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('assets', 'readwrite');
+                tx.objectStore('assets').put(dataUrl, 'custom_bg');
+                return new Promise(res => tx.oncomplete = res);
+            } catch (e) {
+                console.error("IndexedDB Speicherung fehlgeschlagen:", e);
             }
         }
 
-        function processDeleteStep() {
-            const val = document.getElementById('deletePasswordInput').value;
-            if (!val || val.trim() === '') {
-                alert('Bitte gib ein Passwort ein!');
-                return;
-            }
-
-            if (currentDeleteStep === 1) {
-                enteredPass1 = val;
-                currentDeleteStep = 2;
-                updateDeleteModalUI();
-            } else if (currentDeleteStep === 2) {
-                if (val !== enteredPass1) {
-                    alert('❌ Die Passwörter stimmen nicht überein! Vorgang abgebrochen.');
-                    closeDeleteEverythingModal();
-                    return;
-                }
-                enteredPass2 = val;
-                currentDeleteStep = 3;
-                updateDeleteModalUI();
-            } else if (currentDeleteStep === 3) {
-                if (val !== enteredPass1) {
-                    alert('❌ Die Passwörter stimmen nicht überein! Vorgang abgebrochen.');
-                    closeDeleteEverythingModal();
-                    return;
-                }
-                enteredPass3 = val;
-                executeDeleteEverything();
+        async function loadCustomBgAsset() {
+            try {
+                const db = await openDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction('assets', 'readonly');
+                    const req = tx.objectStore('assets').get('custom_bg');
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) {
+                return null;
             }
         }
 
-        function executeDeleteEverything() {
-            localStorage.clear();
-            const req = indexedDB.deleteDatabase('DesktopOS_DB_v3');
-            req.onsuccess = req.onerror = req.onblocked = () => {
-                setTimeout(() => {
-                    alert('🔥 Sämtliche Notizen, Dateien und Speicherdaten wurden erfolgreich gelöscht!');
-                    location.reload();
-                }, 400);
+        async function clearCustomBgAsset() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('assets', 'readwrite');
+                tx.objectStore('assets').delete('custom_bg');
+            } catch (e) {}
+        }
+
+        // FILE SYSTEM ACCESS API INTEGRATION
+        let localDirHandle = null;
+
+        async function connectLocalFolder() {
+            try {
+                localDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                alert("Ordner erfolgreich verbunden! Dateien und Einstellungen werden nun hier als echte Dateien gespeichert.");
+                saveSystemState();
+            } catch (err) {
+                console.error("Ordner-Zugriff verweigert oder abgebrochen", err);
+            }
+        }
+
+        async function writeToLocalFile(filename, content) {
+            if (!localDirHandle) return;
+            try {
+                const fileHandle = await localDirHandle.getFileHandle(filename, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+            } catch (e) {
+                console.error("Fehler beim Schreiben der Datei:", e);
+            }
+        }
+
+        async function deleteLocalFile(filename) {
+            if (!localDirHandle) return;
+            try {
+                await localDirHandle.removeEntry(filename);
+            } catch (e) {
+                console.error("Fehler beim Löschen der echten Datei:", e);
+            }
+        }
+
+        function saveSystemState() {
+            if (!localDirHandle) return;
+            const state = {
+                theme: currentTheme,
+                icons: JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}')
             };
+            writeToLocalFile('os_settings.json', JSON.stringify(state, null, 2));
         }
 
-        loadFiles();
+        const SVG_BG = {
+            original: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230f1115'/><stop offset='50%25' stop-color='%231b1e24'/><stop offset='100%25' stop-color='%232a2e37'/></linearGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>",
+            abstract: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><rect width='100%25' height='100%25' fill='%23090d16'/></svg>",
+            cyberpunk: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><rect width='100%25' height='100%25' fill='%230a0518'/></svg>",
+            forest: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><rect width='100%25' height='100%25' fill='%2304160d'/></svg>",
+            space: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><rect width='100%25' height='100%25' fill='%23030712'/></svg>",
+            sunset: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%232b0f24'/><stop offset='50%25' stop-color='%234a154b'/><stop offset='100%25' stop-color='%23f97316'/></linearGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>",
+            ocean: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><radialGradient id='bg' cx='50%25' cy='50%25' r='75%25'><stop offset='0%25' stop-color='%230f3e5d'/><stop offset='100%25' stop-color='%23020617'/></radialGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>",
+            aurora: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><linearGradient id='bg' x1='0%25' y1='100%25' x2='100%25' y2='0%25'><stop offset='0%25' stop-color='%23022c22'/><stop offset='50%25' stop-color='%23064e3b'/><stop offset='100%25' stop-color='%234c1d95'/></linearGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>",
+            lava: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><radialGradient id='bg' cx='50%25' cy='100%25' r='100%25'><stop offset='0%25' stop-color='%237f1d1d'/><stop offset='50%25' stop-color='%23450a0a'/><stop offset='100%25' stop-color='%23000000'/></radialGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>",
+            hologram: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23172554'/><stop offset='50%25' stop-color='%233b0764'/><stop offset='100%25' stop-color='%23064e3b'/></linearGradient></defs><rect width='100%25' height='100%25' fill='url(%23bg)'/></svg>"
+        };
+
+        const PRESETS = {
+            "original": { mainBg: `url("${SVG_BG.original}")`, bgGrad1: "#0f1115", bgGrad2: "#2a2e37", glassBase: "#111315", accentColor: "#3b82f6", glassOpacity: "0.70", glassBlur: "24" },
+            "abstract": { mainBg: `url("${SVG_BG.abstract}")`, bgGrad1: "#090d16", bgGrad2: "#0d1b2a", glassBase: "#121824", accentColor: "#8b5cf6", glassOpacity: "0.65", glassBlur: "28" },
+            "cyberpunk": { mainBg: `url("${SVG_BG.cyberpunk}")`, bgGrad1: "#0a0518", bgGrad2: "#260a3a", glassBase: "#0d071b", accentColor: "#f43f5e", glassOpacity: "0.70", glassBlur: "18" },
+            "forest": { mainBg: `url("${SVG_BG.forest}")`, bgGrad1: "#04160d", bgGrad2: "#0a2e1d", glassBase: "#071c12", accentColor: "#10b981", glassOpacity: "0.65", glassBlur: "24" },
+            "space": { mainBg: `url("${SVG_BG.space}")`, bgGrad1: "#030712", bgGrad2: "#0f172a", glassBase: "#080e1a", accentColor: "#0ea5e9", glassOpacity: "0.60", glassBlur: "20" },
+            "sunset": { mainBg: `url("${SVG_BG.sunset}")`, bgGrad1: "#2b0f24", bgGrad2: "#f97316", glassBase: "#2b0f24", accentColor: "#f9a8d4", glassOpacity: "0.65", glassBlur: "20" },
+            "ocean": { mainBg: `url("${SVG_BG.ocean}")`, bgGrad1: "#0f3e5d", bgGrad2: "#020617", glassBase: "#020617", accentColor: "#38bdf8", glassOpacity: "0.75", glassBlur: "30" },
+            "aurora": { mainBg: `url("${SVG_BG.aurora}")`, bgGrad1: "#022c22", bgGrad2: "#4c1d95", glassBase: "#022c22", accentColor: "#34d399", glassOpacity: "0.70", glassBlur: "24" },
+            "lava": { mainBg: `url("${SVG_BG.lava}")`, bgGrad1: "#7f1d1d", bgGrad2: "#000000", glassBase: "#1a0505", accentColor: "#f87171", glassOpacity: "0.80", glassBlur: "16" },
+            "hologram": { mainBg: `url("${SVG_BG.hologram}")`, bgGrad1: "#172554", bgGrad2: "#064e3b", glassBase: "#0a0a1a", accentColor: "#c084fc", glassOpacity: "0.55", glassBlur: "35" }
+        };
+
+        let currentTheme = { ...PRESETS["original"] };
+
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.replace('#', ''), 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return `${r}, ${g}, ${b}`;
+        }
+
+        async function loadSavedTheme() {
+            const saved = JSON.parse(localStorage.getItem('os_theme_v3'));
+            if (saved) currentTheme = { ...currentTheme, ...saved };
+
+            if (currentTheme.mainBg === "CUSTOM_INDEXED_DB") {
+                const storedBg = await loadCustomBgAsset();
+                if (storedBg) currentTheme.mainBg = `url('${storedBg}')`;
+            }
+
+            const presetKey = Object.keys(PRESETS).find(k => PRESETS[k].mainBg === currentTheme.mainBg);
+            if (presetKey) document.getElementById('themePresetSelect').value = presetKey;
+            
+            updateUIFromTheme(currentTheme); applyTheme(currentTheme);
+        }
+
+        function updateUIFromTheme(t) {
+            document.getElementById('pickerBg1').value = t.bgGrad1 || "#0f1115";
+            document.getElementById('pickerBg2').value = t.bgGrad2 || "#2a2e37";
+            document.getElementById('pickerGlass').value = t.glassBase;
+            document.getElementById('pickerAccent').value = t.accentColor;
+            document.getElementById('sliderOpacity').value = t.glassOpacity;
+            document.getElementById('sliderBlur').value = t.glassBlur;
+            if (t.customUrl) document.getElementById('customBgUrl').value = t.customUrl;
+            else document.getElementById('customBgUrl').value = '';
+        }
+
+        async function applyPreset() {
+            const key = document.getElementById('themePresetSelect').value;
+            if (PRESETS[key]) {
+                await clearCustomBgAsset();
+                currentTheme = { ...PRESETS[key] };
+                delete currentTheme.customUrl;
+                updateUIFromTheme(currentTheme);
+                applyTheme(currentTheme);
+                saveTheme();
+            }
+        }
+
+        function updateColorsManually() {
+            const bg1 = document.getElementById('pickerBg1').value, bg2 = document.getElementById('pickerBg2').value;
+            currentTheme.mainBg = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`; currentTheme.bgGrad1 = bg1; currentTheme.bgGrad2 = bg2;
+            delete currentTheme.customUrl;
+            clearCustomBgAsset();
+            updateCustomTheme();
+        }
+
+        async function handleUrlUpload() {
+            const url = document.getElementById('customBgUrl').value.trim();
+            if (url) {
+                await clearCustomBgAsset();
+                currentTheme.mainBg = `url('${url}')`;
+                currentTheme.customUrl = url;
+                updateCustomTheme();
+            }
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const dataUrl = event.target.result;
+                await saveCustomBgAsset(dataUrl);
+                currentTheme.mainBg = `url('${dataUrl}')`;
+                delete currentTheme.customUrl;
+                updateCustomTheme();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateCustomTheme() {
+            currentTheme.glassBase = document.getElementById('pickerGlass').value;
+            currentTheme.glassOpacity = document.getElementById('sliderOpacity').value;
+            currentTheme.glassBlur = document.getElementById('sliderBlur').value;
+            currentTheme.accentColor = document.getElementById('pickerAccent').value;
+            applyTheme(currentTheme); saveTheme();
+        }
+
+        function applyTheme(t) {
+            const root = document.documentElement;
+            root.style.setProperty('--main-bg', t.mainBg); 
+            root.style.setProperty('--glass-base', t.glassBase);
+            root.style.setProperty('--glass-base-rgb', hexToRgb(t.glassBase)); 
+            root.style.setProperty('--glass-opacity', t.glassOpacity); 
+            root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
+            root.style.setProperty('--accent-color', t.accentColor);
+
+            ['notesFrame', 'explorerFrame'].forEach(id => {
+                const frame = document.getElementById(id);
+                if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'themeUpdate', theme: t }, '*');
+            });
+        }
+
+        function saveTheme() {
+            const themeToSave = { ...currentTheme };
+            if (themeToSave.mainBg && themeToSave.mainBg.startsWith("url('data:")) {
+                themeToSave.mainBg = "CUSTOM_INDEXED_DB";
+            }
+            localStorage.setItem('os_theme_v3', JSON.stringify(themeToSave));
+            saveSystemState();
+        }
+
+        const GRID_CELL_X = 105; const GRID_CELL_Y = 115; const OFFSET_X = 30; const OFFSET_Y = 120;
+
+        function loadDesktopIcons() {
+            const container = document.getElementById('desktopGrid');
+            container.innerHTML = '';
+            const savedPositions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
+
+            const systemIcons = [
+                { id: 'sys_settings', name: 'System', icon: '⚙️', action: () => toggleWindow('settingsWindow') },
+                { id: 'sys_notes', name: 'Notizen', icon: '📝', action: () => toggleWindow('notesWindow') },
+                { id: 'sys_explorer', name: 'Explorer', icon: '📁', action: () => toggleWindow('explorerWindow') }
+            ];
+
+            const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            const desktopFiles = allFiles.filter(f => f.folder === 'desktop');
+
+            const allItems = [
+                ...systemIcons.map(s => ({ ...s, isFile: false })),
+                ...desktopFiles.map(f => ({
+                    id: `file_${f.id}`, name: f.name, icon: '🌐', isFile: true, fileData: f, action: () => openFileInNotes(f)
+                }))
+            ];
+
+            allItems.forEach((item, index) => {
+                const iconEl = document.createElement('div');
+                iconEl.className = 'icon'; iconEl.dataset.iconId = item.id;
+                iconEl.innerHTML = `<div class="icon-img">${item.icon}</div><div class="icon-text">${item.name}</div>`;
+                iconEl.addEventListener('dblclick', (e) => { e.stopPropagation(); item.action(); });
+
+                let pos = savedPositions[item.id];
+                if (!pos) {
+                    const col = Math.floor(index / 5); const row = index % 5;
+                    pos = { x: OFFSET_X + col * GRID_CELL_X, y: OFFSET_Y + row * GRID_CELL_Y };
+                }
+                iconEl.style.left = `${pos.x}px`; iconEl.style.top = `${pos.y}px`;
+                makeIconDraggable(iconEl); container.appendChild(iconEl);
+            });
+        }
+
+        let draggedIcon = null, dragOffsetX = 0, dragOffsetY = 0, isDraggingIcon = false;
+
+        function makeIconDraggable(el) {
+            el.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                draggedIcon = el; isDraggingIcon = false;
+                dragOffsetX = e.clientX - el.offsetLeft; dragOffsetY = e.clientY - el.offsetTop;
+                document.addEventListener('mousemove', onIconMove); document.addEventListener('mouseup', onIconRelease);
+            });
+        }
+
+        function onIconMove(e) {
+            if (!draggedIcon) return;
+            isDraggingIcon = true; draggedIcon.style.zIndex = 1000;
+            draggedIcon.style.left = `${e.clientX - dragOffsetX}px`; draggedIcon.style.top = `${e.clientY - dragOffsetY}px`;
+        }
+
+        function onIconRelease(e) {
+            if (!draggedIcon) return;
+            if (isDraggingIcon) {
+                let currentX = draggedIcon.offsetLeft - OFFSET_X; let currentY = draggedIcon.offsetTop - OFFSET_Y;
+                let col = Math.max(0, Math.round(currentX / GRID_CELL_X)); let row = Math.max(0, Math.round(currentY / GRID_CELL_Y));
+                let snapX = OFFSET_X + col * GRID_CELL_X; let snapY = OFFSET_Y + row * GRID_CELL_Y;
+                draggedIcon.style.left = `${snapX}px`; draggedIcon.style.top = `${snapY}px`; draggedIcon.style.zIndex = '';
+                const id = draggedIcon.dataset.iconId;
+                const positions = JSON.parse(localStorage.getItem('os_icon_positions_v1') || '{}');
+                positions[id] = { x: snapX, y: snapY }; localStorage.setItem('os_icon_positions_v1', JSON.stringify(positions));
+                saveSystemState();
+            }
+            draggedIcon = null; document.removeEventListener('mousemove', onIconMove); document.removeEventListener('mouseup', onIconRelease);
+        }
+
+        function openFileInNotes(file) {
+            const notesWin = document.getElementById('notesWindow');
+            if (notesWin.classList.contains('hidden')) toggleWindow('notesWindow');
+            else bringToFront(notesWin);
+            const notesFrame = document.getElementById('notesFrame');
+            if (notesFrame && notesFrame.contentWindow) notesFrame.contentWindow.postMessage({ type: 'openInNotes', file: file }, '*');
+        }
+
+        const SALT = "CleanDesktopOS_SecureSalt_v3"; let cryptoKey = null;
+
+        async function generateKey(pwd) {
+            const enc = new TextEncoder();
+            const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
+            cryptoKey = await crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: enc.encode(SALT), iterations: 100000, hash: "SHA-256" },
+                keyMat, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptText(txt) {
+            if(!cryptoKey) return txt;
+            const iv = crypto.getRandomValues(new Uint8Array(12)); const enc = new TextEncoder().encode(txt);
+            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv}, cryptoKey, enc);
+            const combined = new Uint8Array(12 + cipher.byteLength);
+            combined.set(iv, 0); combined.set(new Uint8Array(cipher), 12);
+            let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
+        }
+
+        async function decryptText(b64) {
+            if(!cryptoKey || !b64) return b64;
+            try {
+                const bin = atob(b64); const combined = new Uint8Array(bin.length);
+                for(let i=0; i<bin.length; i++) combined[i] = bin.charCodeAt(i);
+                const iv = combined.slice(0, 12); const cipher = combined.slice(12);
+                const dec = await crypto.subtle.decrypt({name: "AES-GCM", iv}, cryptoKey, cipher);
+                return new TextDecoder().decode(dec);
+            } catch(e) { return b64; }
+        }
+
+        window.onload = async () => {
+            await loadSavedTheme(); 
+            loadDesktopIcons();
+            if (!localStorage.getItem('os_locked_v3')) {
+                document.getElementById('loginDesc').innerText = 'Lege ein neues Master-Passwort fest.';
+                document.getElementById('loginBtn').innerText = 'Einrichten';
+            }
+            setTimeout(() => { document.getElementById('loginScreen').style.opacity = '1'; }, 100);
+        };
+
+        function handleLoginKey(e) { if(e.key === 'Enter') handleLogin(); }
+
+        async function handleLogin() {
+            const pwd = document.getElementById('loginPwd').value; if(!pwd) return;
+            await generateKey(pwd);
+            if (!localStorage.getItem('os_locked_v3')) {
+                localStorage.setItem('os_locked_v3', await encryptText("OS_VERIFIED")); unlockSystem(pwd);
+            } else {
+                if (await decryptText(localStorage.getItem('os_locked_v3')) === "OS_VERIFIED") unlockSystem(pwd);
+                else alert("Falsches Passwort!");
+            }
+        }
+
+        function unlockSystem(pwd) {
+            const screen = document.getElementById('loginScreen');
+            screen.style.opacity = '0'; setTimeout(() => { screen.style.display = 'none'; }, 500);
+            const frame = document.getElementById('notesFrame');
+            if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'unlock', pwd: pwd }, '*');
+        }
+
+        let actWin = null, oX = 0, oY = 0;
+        function toggleWindow(id) { 
+            const w = document.getElementById(id);
+            if (w.classList.contains('hidden')) { w.classList.remove('hidden'); bringToFront(w); } 
+            else { w.classList.add('hidden'); }
+            const popup = document.getElementById('taskManagerPopup');
+            if (popup && !popup.classList.contains('hidden')) renderTaskManager();
+        }
+
+        function toggleFullscreen(id) { document.getElementById(id).classList.toggle('fullscreen'); }
+        function bringToFront(w) { document.querySelectorAll('.app-window').forEach(el => el.style.zIndex = 100); w.style.zIndex = 101; }
+
+        function startDrag(e, id) {
+            actWin = document.getElementById(id); bringToFront(actWin);
+            oX = e.clientX - actWin.offsetLeft; oY = e.clientY - actWin.offsetTop;
+            document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag);
+        }
+        function onDrag(e) {
+            if (!actWin) return;
+            actWin.style.left = `${Math.max(0, e.clientX - oX)}px`; actWin.style.top = `${Math.max(0, e.clientY - oY)}px`;
+        }
+        function stopDrag() { actWin = null; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'notesReady') applyTheme(currentTheme);
+            else if (e.data && e.data.type === 'fileSaved') {
+                loadDesktopIcons();
+                const ex = document.getElementById('explorerFrame');
+                if (ex && ex.contentWindow) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
+                
+                if (e.data.filename && e.data.content) {
+                    writeToLocalFile(e.data.filename, e.data.content);
+                }
+            } else if (e.data && e.data.type === 'fileDeleted') {
+                if (e.data.filename) deleteLocalFile(e.data.filename);
+            } else if (e.data && e.data.type === 'openInNotes') openFileInNotes(e.data.file);
+        });
+
+        const systemApps = [
+            { id: 'settingsWindow', name: '⚙️ Einstellungen', frameId: null },
+            { id: 'notesWindow', name: '📝 Notizen', frameId: 'notesFrame' },
+            { id: 'explorerWindow', name: '📁 Explorer', frameId: 'explorerFrame' }
+        ];
+
+        function toggleTaskManager() {
+            const popup = document.getElementById('taskManagerPopup');
+            if (popup.classList.contains('hidden')) { renderTaskManager(); popup.classList.remove('hidden'); } 
+            else popup.classList.add('hidden');
+        }
+
+        function renderTaskManager() {
+            const container = document.getElementById('taskList'); container.innerHTML = '';
+            let activeProcesses = 0;
+            systemApps.forEach(app => {
+                const win = document.getElementById(app.id);
+                if (win && !win.classList.contains('hidden')) {
+                    activeProcesses++;
+                    const item = document.createElement('div'); item.className = 'task-item';
+                    const restartHtml = app.frameId ? `<button class="task-btn" onclick="restartApp('${app.id}', '${app.frameId}')" title="Neustarten">↻</button>` : '';
+                    item.innerHTML = `<div class="task-info"><span class="task-name">${app.name}</span></div>
+                                      <div class="task-actions">${restartHtml}<button class="task-btn close" onclick="closeApp('${app.id}')" title="Beenden">✕</button></div>`;
+                    container.appendChild(item);
+                }
+            });
+            if (activeProcesses === 0) container.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding: 10px 0;">Keine Prozesse aktiv.</div>';
+        }
+
+        function restartApp(winId, frameId) {
+            const frame = document.getElementById(frameId);
+            if (frame) { const currentSrc = frame.src; frame.src = 'about:blank'; setTimeout(() => { frame.src = currentSrc; }, 100); }
+            setTimeout(renderTaskManager, 150);
+        }
+
+        function closeApp(winId) { const win = document.getElementById(winId); if (win && !win.classList.contains('hidden')) toggleWindow(winId); }
     </script>
 </body>
 </html>
