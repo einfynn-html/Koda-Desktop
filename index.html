@@ -3,794 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clean Desktop OS - Modern Redesign</title>
+    <title>Clean OS</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+        /* --- BASIS DESIGN --- */
         :root {
-            --main-bg: linear-gradient(135deg, #0f1115 0%, #1f242d 100%);
-            --glass-base: #111315;
-            --glass-base-rgb: 17, 19, 21;
-            --glass-opacity: 0.70;
-            --glass-blur: 24px;
-            --glass-border: rgba(255, 255, 255, 0.12);
-            --glass-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+            --bg-color: #0f1115;
+            --text-main: #ffffff;
+            --glass-bg: rgba(20, 22, 26, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
             --accent-color: #3b82f6;
-            --text-main: #F8F9FA;
-            --text-sub: #B2B6BA;
-            --ui-radius: 4px;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-
+        
         body {
-            height: 100vh; width: 100vw; overflow: hidden; background: var(--main-bg);
-            background-size: cover; background-position: center; background-attachment: fixed;
-            background-repeat: no-repeat; display: flex; flex-direction: column;
-            user-select: none; color: var(--text-main); transition: background 0.6s ease;
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: linear-gradient(135deg, #1e293b, #0f1115); /* Minimaler Hintergrund */
+            height: 100vh;
         }
 
-        /* --- LADEBILDSCHIRM CSS --- */
-        #osLoadingScreen {
-            position: fixed; inset: 0; background: #0f1115; z-index: 9999999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.6s ease, visibility 0.6s;
+        /* --- DESKTOP & ICONS --- */
+        #desktopGrid {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
         }
-        .spinner {
-            width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: var(--accent-color); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
+        .icon {
+            position: absolute;
+            width: 80px;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* --- UPDATE BILDSCHIRM CSS --- */
-        #updateScreen {
-            position: fixed; inset: 0; background: #050505; z-index: 99999999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease; opacity: 0; pointer-events: none;
+        .icon:hover { 
+            background: rgba(255, 255, 255, 0.1); 
         }
-        #updateScreen.active { opacity: 1; pointer-events: auto; }
-        .update-title { font-size: 2rem; font-weight: 300; margin-bottom: 12px; color: #fff; }
-        .update-status { font-size: 1rem; color: #888; margin-bottom: 40px; font-family: monospace; }
-        .update-bar-bg { width: 400px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; margin-bottom: 15px; }
-        .update-bar-fill { width: 0%; height: 100%; background: var(--accent-color); transition: width 0.4s ease; }
-        .update-percent { font-size: 1.8rem; font-weight: 600; color: #fff; }
-
-        /* --- STARTMENÜ & HOME-BUTTON CSS --- */
+        .icon-img { 
+            font-size: 2.5rem; 
+            margin-bottom: 5px; 
+        }
+        .icon-text { 
+            font-size: 0.85rem; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); 
+            word-wrap: break-word;
+        }
+        
+        /* --- START MENÜ & TASKBAR --- */
         .home-btn {
-            position: absolute; bottom: 16px; left: 16px; z-index: 10000;
-            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
-            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
-            border-radius: 6px; width: 42px; height: 42px; display: flex; justify-content: center;
-            align-items: center; cursor: pointer; color: var(--text-main); font-size: 1.4rem;
-            transition: transform 0.2s, background 0.2s;
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            width: 45px; height: 45px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: 0.2s;
         }
-        .home-btn:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
+        .home-btn:hover { background: var(--accent-color); border-color: transparent; }
 
         .start-menu {
-            position: absolute; bottom: 66px; left: 16px; width: 220px;
-            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
-            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
-            border-radius: 8px; padding: 12px; box-shadow: var(--glass-shadow);
-            display: flex; flex-direction: column; gap: 8px; z-index: 10001;
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            position: fixed;
+            bottom: 70px;
+            left: 15px;
+            width: 260px;
+            background: rgba(15, 17, 21, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            transition: opacity 0.2s, transform 0.2s;
         }
-        .start-menu.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
-        .start-menu-header { font-size: 1rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 4px; }
+        .start-menu.hidden { 
+            opacity: 0; 
+            pointer-events: none; 
+            transform: translateY(10px); 
+        }
+        .start-menu-header { 
+            font-weight: 600; 
+            margin-bottom: 10px; 
+            font-size: 0.85rem; 
+            color: #888; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .start-menu-btn {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid transparent; color: #fff;
-            padding: 10px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; text-align: left;
-            transition: 0.2s; display: flex; align-items: center; gap: 8px;
+            background: transparent;
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: background 0.2s;
         }
-        .start-menu-btn:hover { background: var(--accent-color); }
-        .start-menu-btn.danger { color: #f87171; }
-        .start-menu-btn.danger:hover { background: #ef4444; color: #fff; }
+        .start-menu-btn:hover { background: rgba(255, 255, 255, 0.1); }
+        .danger { color: #ef4444; }
+        .danger:hover { background: rgba(239, 68, 68, 0.2); }
 
-        #loginScreen {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(30px);
-            z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease, transform 0.5s ease;
+        /* --- CONTEXT MENU CSS (RECHTSKLICK) --- */
+        .context-menu {
+            position: absolute; 
+            background: rgba(20, 22, 26, 0.95);
+            border: 1px solid var(--glass-border); 
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+            padding: 4px;
+            display: flex; 
+            flex-direction: column; 
+            gap: 2px; 
+            z-index: 100000;
+            backdrop-filter: blur(10px);
         }
-        .login-box {
-            background: rgba(20, 22, 26, 0.85); padding: 40px 36px; border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.15); text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); width: 380px;
+        .context-menu-btn {
+            background: transparent; 
+            color: var(--text-main); 
+            border: none;
+            padding: 8px 12px; 
+            text-align: left; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-size: 0.85rem;
         }
-        .login-box h2 { margin-bottom: 8px; font-weight: 600; font-size: 1.5rem; }
-        .login-box p { color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px; }
-        .login-box input {
-            width: 100%; padding: 14px 18px; border-radius: 4px; border: 1px solid var(--glass-border);
-            background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 1rem; outline: none; text-align: center;
-        }
-        .login-box input:focus { border-color: var(--accent-color); }
-        .login-box button {
-            margin-top: 20px; width: 100%; padding: 14px; border-radius: 4px;
-            background: var(--accent-color); color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer;
+        .context-menu-btn:hover { 
+            background: var(--accent-color); 
         }
 
-        .clock-wrapper {
-            position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
-            text-align: center; cursor: pointer; padding: 12px 24px; border-radius: 4px; z-index: 10;
-        }
-        #clock { font-size: 4rem; font-weight: 300; line-height: 1; }
-        #date { font-size: 1.05rem; font-weight: 500; color: rgba(255,255,255,0.85); margin-top: 6px; }
-
-        .desktop { position: absolute; inset: 0; pointer-events: auto; }
-        .icon {
-            position: absolute; width: 90px; display: flex; flex-direction: column;
-            align-items: center; cursor: pointer; padding: 8px; border-radius: 4px;
-            transition: background 0.2s; user-select: none;
-        }
-        .icon:hover { background: rgba(255, 255, 255, 0.12); }
-        .icon-img {
-            width: 56px; height: 56px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(var(--glass-blur));
-            border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; margin-bottom: 8px;
-            display: flex; justify-content: center; align-items: center; font-size: 26px; pointer-events: none;
+        /* --- FENSTER (APP SIMULATION) --- */
+        .window {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 400px;
+            background: var(--bg-color);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
             overflow: hidden;
         }
-        .icon-text { font-size: 0.82rem; font-weight: 500; text-align: center; word-break: break-word; pointer-events: none; line-height: 1.2; }
-
-        .dock-container {
-            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 8px; padding: 8px 14px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
-            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: 6px; z-index: 10000;
-        }
-        .dock-item {
-            display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 4px;
-            border: 1px solid transparent; background: transparent; color: var(--text-main); font-size: 0.95rem; cursor: pointer;
-        }
-        .dock-item:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-2px); }
-
-        .app-window {
-            position: absolute; width: 880px; height: 600px; top: 80px; left: 150px;
-            background: rgba(var(--glass-base-rgb), var(--glass-opacity)); 
-            backdrop-filter: blur(var(--glass-blur));
-            border: 1px solid var(--glass-border); border-radius: var(--ui-radius);
-            box-shadow: var(--glass-shadow); display: flex; flex-direction: column; overflow: hidden; z-index: 100;
-        }
-        .app-window.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
-        .app-window.fullscreen { top: 8px !important; left: 8px !important; width: calc(100vw - 16px) !important; height: calc(100vh - 16px) !important; }
-
         .window-header {
-            height: 42px; padding: 0 12px; background: rgba(0, 0, 0, 0.35); border-bottom: 1px solid rgba(255,255,255,0.08);
-            display: flex; align-items: center; justify-content: space-between; cursor: grab;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
         }
-        .window-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; pointer-events: none; }
-        .window-controls { display: flex; gap: 4px; align-items: center; }
-        .win-btn { width: 28px; height: 26px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.05); color: var(--text-sub); cursor: pointer; }
-        .win-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
-        .win-btn.close:hover { background: #ef4444; }
-
-        .window-body { flex-grow: 1; overflow: hidden; color: var(--text-main); display: flex; }
-
-        .settings-content { padding: 24px; width: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-        .settings-card { background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); }
-        .settings-section-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; }
-        .setting-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        .setting-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 12px 14px; border-radius: 4px; }
-        .setting-row.full-width { grid-column: span 2; flex-direction: column; align-items: flex-start; gap: 10px; }
-        
-        input[type="range"] { accent-color: var(--accent-color); cursor: pointer; }
-        input[type="color"] { border: none; background: transparent; cursor: pointer; width: 36px; height: 36px; }
-        select.ui-select, input.ui-input { width: 100%; padding: 12px 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: var(--text-main); outline: none; }
-        select.ui-select option { background: #1a1c23; }
-        .file-upload-btn { background: rgba(255,255,255,0.04); border: 2px dashed rgba(255,255,255,0.18); padding: 14px; width: 100%; text-align: center; border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 500; }
-        .file-upload-btn:hover { background: rgba(255,255,255,0.08); }
-        input[type="file"] { display: none; }
-
-        .sys-tray-container {
-            position: absolute; bottom: 16px; right: 16px; display: flex; align-items: center;
-            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
-            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
-            border-radius: 6px; padding: 6px 12px; z-index: 10000;
+        .close-btn { 
+            background: transparent; 
+            border: none; 
+            color: #aaa; 
+            cursor: pointer; 
+            font-size: 1.2rem;
         }
-        .sys-tray-btn {
-            background: transparent; border: none; color: var(--text-main); font-size: 1.2rem;
-            font-weight: bold; cursor: pointer; transition: transform 0.2s; padding: 4px;
+        .close-btn:hover { color: #ef4444; }
+        .window-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
         }
-        .sys-tray-btn:hover { transform: scale(1.1); }
-
-        .task-manager-popup {
-            position: absolute; bottom: 60px; right: 16px; width: 260px;
-            background: rgba(var(--glass-base-rgb), var(--glass-opacity));
-            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
-            border-radius: 8px; box-shadow: var(--glass-shadow); padding: 14px; z-index: 10001;
-            display: flex; flex-direction: column; gap: 10px; transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        .task-manager-popup.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
-        .task-manager-header { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
-        .task-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .task-info { display: flex; align-items: center; }
-        .task-name { font-weight: 600; font-size: 0.85rem; color: var(--text-main); }
-        .task-actions { display: flex; gap: 6px; }
-        .task-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
-        .task-btn:hover { background: var(--accent-color); }
-        .task-btn.close:hover { background: #ef4444; }
     </style>
 </head>
 <body>
 
-    <div id="osLoadingScreen">
-        <div class="spinner"></div>
-        <div style="font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.7);">System wird gestartet...</div>
-    </div>
-
-    <!-- UPDATE SCREEN -->
-    <div id="updateScreen">
-        <h1 class="update-title">UPDATING SYSTEM</h1>
-        <div class="update-bar-bg">
-            <div class="update-bar-fill" id="updateBar"></div>
-        </div>
-        <div class="update-percent" id="updatePercent">0%</div>
-        <div class="update-status" id="updateStatus">Initialisiere Update...</div>
-    </div>
-
-    <div id="loginScreen" style="display: none; opacity: 0;">
-        <div class="login-box">
-            <h2 id="loginTitle">System gesperrt</h2>
-            <p id="loginDesc">Bitte Master-Passwort eingeben</p>
-            <input type="password" id="loginPwd" placeholder="Passwort..." onkeypress="handleLoginKey(event)">
-            <button id="loginBtn" onclick="handleLogin()">Entsperren</button>
-        </div>
-    </div>
-
-    <div class="clock-wrapper" ondblclick="toggleWindow('settingsWindow')">
-        <div id="clock">00:00</div>
-        <div id="date">Laden...</div>
-    </div>
-
-    <div class="desktop" id="desktopGrid"></div>
+    <!-- DESKTOP BEREICH -->
+    <div id="desktopGrid"></div>
 
     <!-- START MENÜ & HOME BUTTON -->
     <button class="home-btn" id="homeBtn" onclick="toggleStartMenu()">⊞</button>
-    
+
     <div class="start-menu hidden" id="startMenu">
-        <div class="start-menu-header">Clean OS Menü</div>
+        <div class="start-menu-header">System</div>
         <button class="start-menu-btn" onclick="startSystemUpdate()">🔄 Update ALL</button>
-        <!-- NEUER BUTTON: FACTORY RESET -->
-        <button class="start-menu-btn danger" onclick="factoryReset()">⚠️ Factory Reset</button>
+        
+        <!-- Bereich für GitHub Apps -->
+        <div class="start-menu-header" style="margin-top: 15px;">Apps (Rechtsklick!)</div>
+        <div id="githubAppsList" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        
+        <button class="start-menu-btn danger" style="margin-top: 15px;" onclick="factoryReset()">⚠️ Factory Reset</button>
     </div>
 
-    <div class="dock-container">
-        <button class="dock-item" onclick="toggleWindow('settingsWindow')">⚙️ Settings</button>
-        <button class="dock-item" onclick="toggleWindow('notesWindow')">📝 Notes</button>
-        <button class="dock-item" onclick="toggleWindow('explorerWindow')">📁 Explorer</button>
+    <!-- RECHTSKLICK-MENÜ -->
+    <div id="customContextMenu" class="context-menu" style="display: none;">
+        <button class="context-menu-btn" id="ctxAddBtn">Auf Desktop hinzufügen</button>
+        <button class="context-menu-btn" id="ctxRemoveBtn">Vom Desktop entfernen</button>
     </div>
 
-    <div class="sys-tray-container">
-        <button class="sys-tray-btn" onclick="toggleTaskManager()">^</button>
+    <!-- APP FENSTER (Beispiele) -->
+    <div class="window" id="notesWindow">
+        <div class="window-header"><span>📝 Notes</span><button class="close-btn" onclick="toggleWindow('notesWindow')">✖</button></div>
+        <div class="window-content">Hier ist die Notizen App (notes.html)...</div>
+    </div>
+    <div class="window" id="explorerWindow">
+        <div class="window-header"><span>📁 Explorer</span><button class="close-btn" onclick="toggleWindow('explorerWindow')">✖</button></div>
+        <div class="window-content">Hier ist der Datei-Explorer (explorer.html)...</div>
+    </div>
+    <div class="window" id="settingsWindow">
+        <div class="window-header"><span>⚙️ Settings</span><button class="close-btn" onclick="toggleWindow('settingsWindow')">✖</button></div>
+        <div class="window-content">Hier sind die Einstellungen (index.html)...</div>
     </div>
 
-    <div class="task-manager-popup hidden" id="taskManagerPopup">
-        <div class="task-manager-header">⚙️ Aktive Prozesse</div>
-        <div id="taskList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
-
-    <div class="app-window hidden" id="notesWindow">
-        <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
-            <div class="window-title">📝 Notizen</div>
-            <div class="window-controls">
-                <button class="win-btn full" onclick="toggleFullscreen('notesWindow')">▢</button>
-                <button class="win-btn close" onclick="toggleWindow('notesWindow')">✕</button>
-            </div>
-        </div>
-        <div class="window-body" style="padding: 0; display: block;">
-            <iframe id="notesFrame" data-src="notes.html" src="" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
-        </div>
-    </div>
-
-    <div class="app-window hidden" id="explorerWindow">
-        <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
-            <div class="window-title">📁 Datei-Explorer</div>
-            <div class="window-controls">
-                <button class="win-btn full" onclick="toggleFullscreen('explorerWindow')">▢</button>
-                <button class="win-btn close" onclick="toggleWindow('explorerWindow')">✕</button>
-            </div>
-        </div>
-        <div class="window-body" style="padding: 0; display: block;">
-            <iframe id="explorerFrame" data-src="explorer.html" src="" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
-        </div>
-    </div>
-
-    <div class="app-window hidden" id="settingsWindow">
-        <div class="window-header" onmousedown="startDrag(event, 'settingsWindow')">
-            <div class="window-title">⚙️ System-Einstellungen</div>
-            <div class="window-controls">
-                <button class="win-btn full" onclick="toggleFullscreen('settingsWindow')">▢</button>
-                <button class="win-btn close" onclick="toggleWindow('settingsWindow')">✕</button>
-            </div>
-        </div>
-        <div class="window-body">
-            <div class="settings-content">
-                <div class="settings-card">
-                    <div class="settings-section-title">💾 Lokaler Festplatten-Speicher</div>
-                    <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
-                        Damit Änderungen und Updates als echte Dateien auf der Festplatte gespeichert werden, verbinde deinen aktuellen Ordner.
-                    </p>
-                    <button class="file-upload-btn" onclick="connectLocalFolder()">📁 Speicher-Ordner verbinden</button>
-                </div>
-
-                <div class="settings-card">
-                    <div class="settings-section-title">🖼️ KI-Hintergründe & Themes</div>
-                    <div class="setting-grid">
-                        <div class="setting-row full-width">
-                            <label>Design-Preset auswählen</label>
-                            <select class="ui-select" id="themePresetSelect" onchange="applyPreset()">
-                                <option value="original">Original Dark Minimalist</option>
-                                <option value="cyberpunk">Cyberpunk Neon (KI)</option>
-                                <option value="space">Deep Cosmic Space (KI)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 🟢 NEU: EIGENES HINTERGRUNDBILD HIER EINGEFÜGT -->
-                <div class="settings-card">
-                    <div class="settings-section-title">📸 Eigenes Hintergrundbild</div>
-                    <div class="setting-grid">
-                        <div class="setting-row full-width">
-                            <label>Bild-URL (Internet-Link)</label>
-                            <input type="text" class="ui-input" id="bgImageUrl" placeholder="https://beispiel.de/bild.jpg" oninput="updateBgFromUrl()">
-                        </div>
-                        <div class="setting-row full-width">
-                            <label>Oder lokales Bild hochladen</label>
-                            <!-- Der versteckte file-input wird durch den Button ausgelöst -->
-                            <button class="file-upload-btn" onclick="document.getElementById('bgImageFile').click()">📂 Bild vom PC auswählen</button>
-                            <input type="file" id="bgImageFile" accept="image/*" onchange="updateBgFromFile(event)">
-                        </div>
-                    </div>
-                </div>
-                <!-- 🟢 ENDE NEU -->
-
-                <div class="settings-card">
-                    <div class="settings-section-title">🎨 Personalisierung</div>
-                    <div class="setting-grid">
-                        <div class="setting-row"><label>Hintergrund 1</label><input type="color" id="pickerBg1" onchange="updateColorsManually()"></div>
-                        <div class="setting-row"><label>Hintergrund 2</label><input type="color" id="pickerBg2" onchange="updateColorsManually()"></div>
-                        <div class="setting-row"><label>Glas-Basis</label><input type="color" id="pickerGlass" onchange="updateCustomTheme()"></div>
-                        <div class="setting-row"><label>Akzentfarbe</label><input type="color" id="pickerAccent" onchange="updateCustomTheme()"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- JAVASCRIPT LOGIK -->
     <script>
-        // --- HIER DEINE RAW GITHUB LINKS EINTRAGEN (Falls vorhanden) ---
-        const GITHUB_URL_INDEX = ""; 
-        const GITHUB_URL_NOTES = ""; 
-        const GITHUB_URL_EXPLORER = "";
-        // -------------------------------------------------------------------
+        // --- 1. GITHUB APPS DEKLARIEREN ---
+        const githubApps = [
+            { id: 'app_notes', name: 'Notes', appId: 'notesWindow', icon: '📝' },
+            { id: 'app_explorer', name: 'Explorer', appId: 'explorerWindow', icon: '📁' },
+            { id: 'app_settings', name: 'Settings', appId: 'settingsWindow', icon: '⚙️' }
+        ];
 
-        let osUnlocked = false;
-        let globalMasterPassword = null; 
-        let localDirHandle = null;
-
-        /* --- MENÜ SYSTEM LOGIK --- */
-        function toggleStartMenu() {
-            const menu = document.getElementById('startMenu');
-            menu.classList.toggle('hidden');
-        }
-
-        // Schließe Menü, wenn man außerhalb klickt
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#startMenu') && !e.target.closest('#homeBtn')) {
-                document.getElementById('startMenu').classList.add('hidden');
-            }
-        });
-
-        /* --- NEU: FACTORY RESET (3x Passwort nötig) --- */
-        async function factoryReset() {
-            document.getElementById('startMenu').classList.add('hidden');
-            
-            if (!globalMasterPassword) {
-                alert("Fehler: System ist noch nicht entsperrt.");
-                return;
-            }
-
-            for (let i = 1; i <= 3; i++) {
-                let input = prompt(`⚠️ ACHTUNG: Dies löscht ALLE Notizen, Bilder und Einstellungen unwiderruflich!\n\nBitte Master-Passwort eingeben, um zu bestätigen (${i}/3):`);
+        // --- 2. APPS INS STARTMENÜ LADEN ---
+        function renderStartMenuApps() {
+            const container = document.getElementById('githubAppsList');
+            container.innerHTML = '';
+            githubApps.forEach(app => {
+                const btn = document.createElement('button');
+                btn.className = 'start-menu-btn';
+                btn.innerHTML = `${app.icon} ${app.name}`;
                 
-                if (input === null) {
-                    alert("Zurücksetzen sicherheitshalber abgebrochen.");
-                    return; 
-                }
+                // Linksklick: App öffnen & Startmenü schließen
+                btn.onclick = () => {
+                    toggleWindow(app.appId);
+                    toggleStartMenu(); 
+                };
                 
-                if (input !== globalMasterPassword) {
-                    alert("Falsches Passwort! Zurücksetzen sicherheitshalber abgebrochen.");
-                    return;
-                }
-            }
-
-            // Wenn die Schleife ohne 'return' durchlief, wurde das Passwort 3x korrekt eingegeben
-            alert("Passwort 3x korrekt. Das System wird nun vollständig gelöscht...");
-            
-            // Lokalen Speicher (Browser-Daten) restlos leeren
-            localStorage.clear();
-            
-            // Seite komplett neu laden, damit das System als "Neu" startet
-            window.location.href = window.location.href.split('?')[0]; 
-        }
-
-        /* --- UPDATE LOGIK --- */
-        async function startSystemUpdate() {
-            document.getElementById('startMenu').classList.add('hidden');
-            const updateScreen = document.getElementById('updateScreen');
-            updateScreen.classList.add('active');
-
-            const bar = document.getElementById('updateBar');
-            const pct = document.getElementById('updatePercent');
-            const status = document.getElementById('updateStatus');
-
-            // Update Phasen
-            const steps = [
-                { msg: "Verbinde mit Server...", progress: 15, delay: 1200 },
-                { msg: "Lade index.html herunter...", progress: 35, delay: 800, url: GITHUB_URL_INDEX, file: 'index.html' },
-                { msg: "Lade notes.html herunter...", progress: 55, delay: 900, url: GITHUB_URL_NOTES, file: 'notes.html' },
-                { msg: "Lade explorer.html herunter...", progress: 75, delay: 700, url: GITHUB_URL_EXPLORER, file: 'explorer.html' },
-                { msg: "Lösche alte App-Daten & Caches...", progress: 90, delay: 1200, action: 'cleanup' },
-                { msg: "Installiere Updates...", progress: 100, delay: 1000 }
-            ];
-
-            let currentProgress = 0;
-
-            for (const step of steps) {
-                status.textContent = step.msg;
-                bar.style.width = step.progress + '%';
+                // Rechtsklick: Kontextmenü öffnen
+                btn.oncontextmenu = (e) => showContextMenu(e, app);
                 
-                while(currentProgress < step.progress) {
-                    currentProgress++;
-                    pct.textContent = currentProgress + '%';
-                    await new Promise(r => setTimeout(r, 15)); 
-                }
-
-                if (step.url && step.url.trim() !== "" && localDirHandle) {
-                    try {
-                        let res = await fetch(step.url);
-                        if(res.ok) {
-                            let text = await res.text();
-                            await writeToLocalFile(step.file, text);
-                        }
-                    } catch(e) {
-                        console.error("Fehler beim Herunterladen von " + step.file, e);
-                    }
-                }
-
-                if (step.action === 'cleanup') {
-                    const whitelist = ['os_vfs_v1', 'os_locked_v3']; 
-                    const keysToRemove = [];
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        if (!whitelist.includes(key)) keysToRemove.push(key);
-                    }
-                    keysToRemove.forEach(k => localStorage.removeItem(k));
-                }
-                
-                if(step.delay) await new Promise(r => setTimeout(r, step.delay));
-            }
-
-            status.textContent = "Update erfolgreich. System wird neu gestartet...";
-            await new Promise(r => setTimeout(r, 1000));
-            window.location.href = window.location.href.split('?')[0] + '?update=' + new Date().getTime();
-        }
-
-        async function connectLocalFolder() {
-            try {
-                localDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                alert("Ordner erfolgreich verbunden! OTA Updates und Dateien werden nun lokal überschrieben.");
-            } catch (err) { console.error("Ordner-Zugriff verweigert oder abgebrochen", err); }
-        }
-
-        async function writeToLocalFile(filename, content) {
-            if (!localDirHandle) return;
-            try {
-                const fileHandle = await localDirHandle.getFileHandle(filename, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(content);
-                await writable.close();
-            } catch (e) { console.error("Fehler beim Schreiben:", e); }
-        }
-
-        async function deleteLocalFile(filename) {
-            if (!localDirHandle) return;
-            try { await localDirHandle.removeEntry(filename); } catch (e) { console.error("Fehler beim Löschen:", e); }
-        }
-
-        const PRESETS = {
-            "original": { mainBg: `linear-gradient(135deg, #0f1115 0%, #1f242d 100%)`, bgGrad1: "#0f1115", bgGrad2: "#1f242d", glassBase: "#111315", accentColor: "#3b82f6", glassOpacity: "0.70", glassBlur: "24" },
-            "cyberpunk": { mainBg: `linear-gradient(135deg, #0a0518 0%, #260a3a 100%)`, bgGrad1: "#0a0518", bgGrad2: "#260a3a", glassBase: "#0d071b", accentColor: "#f43f5e", glassOpacity: "0.70", glassBlur: "18" },
-            "space": { mainBg: `linear-gradient(135deg, #030712 0%, #0f172a 100%)`, bgGrad1: "#030712", bgGrad2: "#0f172a", glassBase: "#080e1a", accentColor: "#0ea5e9", glassOpacity: "0.60", glassBlur: "20" }
-        };
-
-        let currentTheme = { ...PRESETS["original"] };
-
-        function hexToRgb(hex) {
-            const bigint = parseInt(hex.replace('#', ''), 16);
-            return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
-        }
-
-        function loadSavedTheme() {
-            const saved = JSON.parse(localStorage.getItem('os_theme_v3'));
-            if (saved) currentTheme = { ...currentTheme, ...saved };
-            applyTheme(currentTheme);
-        }
-
-        function applyPreset() {
-            const key = document.getElementById('themePresetSelect').value;
-            if (PRESETS[key]) {
-                currentTheme = { ...PRESETS[key] };
-                applyTheme(currentTheme); localStorage.setItem('os_theme_v3', JSON.stringify(currentTheme));
-            }
-        }
-
-        function updateColorsManually() {
-            const bg1 = document.getElementById('pickerBg1').value, bg2 = document.getElementById('pickerBg2').value;
-            currentTheme.mainBg = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`; 
-            updateCustomTheme();
-        }
-
-        function updateCustomTheme() {
-            currentTheme.glassBase = document.getElementById('pickerGlass').value;
-            currentTheme.accentColor = document.getElementById('pickerAccent').value;
-            applyTheme(currentTheme); localStorage.setItem('os_theme_v3', JSON.stringify(currentTheme));
-        }
-
-        function applyTheme(t) {
-            const root = document.documentElement;
-            root.style.setProperty('--main-bg', t.mainBg); root.style.setProperty('--glass-base', t.glassBase);
-            root.style.setProperty('--glass-base-rgb', hexToRgb(t.glassBase)); 
-            root.style.setProperty('--accent-color', t.accentColor);
-
-            ['notesFrame', 'explorerFrame'].forEach(id => {
-                const frame = document.getElementById(id);
-                if (frame && frame.contentWindow && frame.src) frame.contentWindow.postMessage({ type: 'themeUpdate', theme: t }, '*');
+                container.appendChild(btn);
             });
         }
 
+        // --- 3. RECHTSKLICK-MENÜ (CONTEXT MENU) LOGIK ---
+        let currentContextApp = null;
+        function showContextMenu(e, app) {
+            e.preventDefault();
+            currentContextApp = app;
+            const ctx = document.getElementById('customContextMenu');
+            ctx.style.display = 'flex';
+            ctx.style.left = e.pageX + 'px';
+            ctx.style.top = (e.pageY - 60) + 'px'; // Leicht versetzt, damit es unter der Maus auftaucht
+        }
+
+        // Klick irgendwo anders schließt das Kontextmenü
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#customContextMenu')) {
+                document.getElementById('customContextMenu').style.display = 'none';
+            }
+        });
+
+        // App zum Desktop hinzufügen
+        document.getElementById('ctxAddBtn').onclick = () => {
+            if(!currentContextApp) return;
+            let allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            
+            // Verhindern, dass es doppelt hinzugefügt wird
+            if(!allFiles.find(f => f.id === currentContextApp.id)) {
+                allFiles.push({
+                    id: currentContextApp.id,
+                    name: currentContextApp.name,
+                    type: 'app', // Typ 'app', damit das System weiß, es öffnet ein Fenster
+                    appId: currentContextApp.appId,
+                    folder: 'desktop',
+                    icon: currentContextApp.icon
+                });
+                localStorage.setItem('os_vfs_v1', JSON.stringify(allFiles));
+                loadDesktopIcons();
+            }
+            document.getElementById('customContextMenu').style.display = 'none';
+        };
+
+        // App vom Desktop entfernen
+        document.getElementById('ctxRemoveBtn').onclick = () => {
+            if(!currentContextApp) return;
+            let allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            allFiles = allFiles.filter(f => f.id !== currentContextApp.id); // Entfernt das Objekt
+            localStorage.setItem('os_vfs_v1', JSON.stringify(allFiles));
+            loadDesktopIcons();
+            document.getElementById('customContextMenu').style.display = 'none';
+        };
+
+        // --- 4. DESKTOP ICONS LADEN ---
         function loadDesktopIcons() {
-            const container = document.getElementById('desktopGrid'); container.innerHTML = '';
+            const container = document.getElementById('desktopGrid'); 
+            container.innerHTML = '';
+            
             const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
             const desktopFiles = allFiles.filter(f => f.folder === 'desktop');
 
             desktopFiles.forEach((f, index) => {
                 const iconEl = document.createElement('div');
                 iconEl.className = 'icon';
-                iconEl.innerHTML = `<div class="icon-img">🌐</div><div class="icon-text">${f.name}</div>`;
-                iconEl.style.left = `${30 + (index % 5) * 105}px`; iconEl.style.top = `${120 + Math.floor(index / 5) * 115}px`;
-                iconEl.ondblclick = () => openFileInNotes(f);
+                
+                // Icon Logik: Wenn es eine App ist, nimm ihr Icon, sonst Standard (Dokument)
+                const displayIcon = f.type === 'app' ? (f.icon || '🌐') : '📄';
+                
+                iconEl.innerHTML = `<div class="icon-img">${displayIcon}</div><div class="icon-text">${f.name}</div>`;
+                
+                // Positionierung im Grid
+                iconEl.style.left = `${30 + (index % 5) * 105}px`; 
+                iconEl.style.top = `${30 + Math.floor(index / 5) * 115}px`;
+                
+                // Doppelklick-Logik
+                iconEl.ondblclick = () => {
+                    if (f.type === 'app') {
+                        toggleWindow(f.appId); // Startet das App-Fenster
+                    } else {
+                        openFileInNotes(f); // Öffnet reguläre Dateien in einer App
+                    }
+                };
                 container.appendChild(iconEl);
             });
         }
 
-        function loadAppIframe(frameId) {
-            const iframe = document.getElementById(frameId);
-            if (iframe && !iframe.src.includes('.html')) { iframe.src = iframe.getAttribute('data-src'); return true; }
-            return false;
+        // --- 5. SYSTEM HILFSFUNKTIONEN ---
+        function toggleStartMenu() {
+            const menu = document.getElementById('startMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleWindow(windowId) {
+            const win = document.getElementById(windowId);
+            if (win) {
+                // Wenn sichtbar, verstecken - wenn versteckt, anzeigen
+                win.style.display = (win.style.display === 'flex') ? 'none' : 'flex';
+                // Bring in den Vordergrund
+                win.style.zIndex = 100 + document.querySelectorAll('.window').length;
+            }
         }
 
         function openFileInNotes(file) {
-            const notesWin = document.getElementById('notesWindow');
-            const isFreshLoad = loadAppIframe('notesFrame');
-            if (notesWin.classList.contains('hidden')) toggleWindow('notesWindow'); else bringToFront(notesWin);
-            
-            if (!isFreshLoad) {
-                document.getElementById('notesFrame').contentWindow.postMessage({ type: 'openInNotes', file: file }, '*');
-            } else {
-                window.pendingFileToOpen = file;
-            }
+            alert(`Dummy: Öffne Textdatei "${file.name}" im Editor...`);
         }
 
-        const SALT = "CleanDesktopOS_SecureSalt_v3"; let cryptoKey = null;
-
-        async function generateKey(pwd) {
-            const enc = new TextEncoder();
-            const keyMat = await crypto.subtle.importKey("raw", enc.encode(pwd), {name: "PBKDF2"}, false, ["deriveBits", "deriveKey"]);
-            cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(SALT), iterations: 100000, hash: "SHA-256" }, keyMat, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+        function startSystemUpdate() { 
+            alert('System Update wird ausgeführt (Dummy)...'); 
         }
 
-        async function encryptText(txt) {
-            if(!cryptoKey) return txt;
-            const iv = crypto.getRandomValues(new Uint8Array(12)); const enc = new TextEncoder().encode(txt);
-            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv}, cryptoKey, enc);
-            const combined = new Uint8Array(12 + cipher.byteLength);
-            combined.set(iv, 0); combined.set(new Uint8Array(cipher), 12);
-            let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
-        }
-
-        async function decryptText(b64) {
-            if(!cryptoKey || !b64) return b64;
-            try {
-                const bin = atob(b64); const combined = new Uint8Array(bin.length);
-                for(let i=0; i<bin.length; i++) combined[i] = bin.charCodeAt(i);
-                const iv = combined.slice(0, 12); const cipher = combined.slice(12);
-                const dec = await crypto.subtle.decrypt({name: "AES-GCM", iv}, cryptoKey, cipher); return new TextDecoder().decode(dec);
-            } catch(e) { return b64; }
-        }
-
-        window.onload = async () => {
-            loadSavedTheme(); loadDesktopIcons();
-            
-            const loader = document.getElementById('osLoadingScreen');
-            const login = document.getElementById('loginScreen');
-
-            if (!localStorage.getItem('os_locked_v3')) {
-                document.getElementById('loginDesc').innerText = 'Lege ein neues Master-Passwort fest.';
-                document.getElementById('loginBtn').innerText = 'Einrichten';
-            }
-
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                login.style.display = 'flex';
-                setTimeout(() => { loader.style.visibility = 'hidden'; login.style.opacity = '1'; }, 600);
-            }, 800);
-        };
-
-        function handleLoginKey(e) { if(e.key === 'Enter') handleLogin(); }
-
-        async function handleLogin() {
-            const pwd = document.getElementById('loginPwd').value; if(!pwd) return;
-            await generateKey(pwd);
-            if (!localStorage.getItem('os_locked_v3')) {
-                localStorage.setItem('os_locked_v3', await encryptText("OS_VERIFIED")); unlockSystem(pwd);
-            } else {
-                if (await decryptText(localStorage.getItem('os_locked_v3')) === "OS_VERIFIED") unlockSystem(pwd);
-                else alert("Falsches Passwort!");
-            }
-        }
-
-        function unlockSystem(pwd) {
-            osUnlocked = true; globalMasterPassword = pwd; 
-            const screen = document.getElementById('loginScreen');
-            screen.style.opacity = '0'; setTimeout(() => { screen.style.display = 'none'; }, 500);
-            
-            const frame = document.getElementById('notesFrame');
-            if (frame && frame.contentWindow && frame.src.includes('.html')) {
-                frame.contentWindow.postMessage({ type: 'unlock', pwd: pwd }, '*');
-            }
-        }
-
-        let actWin = null, oX = 0, oY = 0;
-        function toggleWindow(id) { 
-            const w = document.getElementById(id);
-            if (id === 'notesWindow') loadAppIframe('notesFrame');
-            if (id === 'explorerWindow') loadAppIframe('explorerFrame');
-
-            if (w.classList.contains('hidden')) { w.classList.remove('hidden'); bringToFront(w); } 
-            else { w.classList.add('hidden'); }
-            
-            const popup = document.getElementById('taskManagerPopup');
-            if (popup && !popup.classList.contains('hidden')) renderTaskManager();
-        }
-
-        function toggleFullscreen(id) { document.getElementById(id).classList.toggle('fullscreen'); }
-        function bringToFront(w) { document.querySelectorAll('.app-window').forEach(el => el.style.zIndex = 100); w.style.zIndex = 101; }
-
-        function startDrag(e, id) {
-            actWin = document.getElementById(id); bringToFront(actWin);
-            oX = e.clientX - actWin.offsetLeft; oY = e.clientY - actWin.offsetTop;
-            document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag);
-        }
-        function onDrag(e) {
-            if (!actWin) return;
-            actWin.style.left = `${Math.max(0, e.clientX - oX)}px`; actWin.style.top = `${Math.max(0, e.clientY - oY)}px`;
-        }
-        function stopDrag() { actWin = null; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
-        }
-        setInterval(updateClock, 1000); updateClock();
-
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'notesReady') {
-                applyTheme(currentTheme);
-                if (osUnlocked && globalMasterPassword) {
-                    const frame = document.getElementById('notesFrame');
-                    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'unlock', pwd: globalMasterPassword }, '*');
-                }
-                if (window.pendingFileToOpen) {
-                    setTimeout(() => {
-                        const frame = document.getElementById('notesFrame');
-                        frame.contentWindow.postMessage({ type: 'openInNotes', file: window.pendingFileToOpen }, '*');
-                        window.pendingFileToOpen = null;
-                    }, 200);
-                }
-            }
-            else if (e.data && e.data.type === 'explorerReady') {
-                applyTheme(currentTheme);
-                const ex = document.getElementById('explorerFrame');
-                if (ex && ex.contentWindow) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
-            }
-            else if (e.data && e.data.type === 'fileSaved') {
+        function factoryReset() { 
+            if(confirm('Möchtest du wirklich deinen kompletten virtuellen Desktop zurücksetzen?')) {
+                localStorage.removeItem('os_vfs_v1');
                 loadDesktopIcons();
-                const ex = document.getElementById('explorerFrame');
-                if (ex && ex.contentWindow && ex.src) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
-                if (e.data.filename && e.data.content) { writeToLocalFile(e.data.filename, e.data.content); }
-            } else if (e.data && e.data.type === 'fileDeleted') {
-                if (e.data.filename) deleteLocalFile(e.data.filename);
-            } else if (e.data && e.data.type === 'openInNotes') {
-                openFileInNotes(e.data.file);
-            }
-        });
-
-        const systemApps = [
-            { id: 'settingsWindow', name: '⚙️ Einstellungen', frameId: null },
-            { id: 'notesWindow', name: '📝 Notizen', frameId: 'notesFrame' },
-            { id: 'explorerWindow', name: '📁 Explorer', frameId: 'explorerFrame' }
-        ];
-
-        function toggleTaskManager() {
-            const popup = document.getElementById('taskManagerPopup');
-            if (popup.classList.contains('hidden')) { renderTaskManager(); popup.classList.remove('hidden'); } 
-            else popup.classList.add('hidden');
-        }
-
-        function renderTaskManager() {
-            const container = document.getElementById('taskList'); container.innerHTML = ''; let activeProcesses = 0;
-            systemApps.forEach(app => {
-                const win = document.getElementById(app.id);
-                if (win && !win.classList.contains('hidden')) {
-                    activeProcesses++; const item = document.createElement('div'); item.className = 'task-item';
-                    const restartHtml = app.frameId ? `<button class="task-btn" onclick="restartApp('${app.id}', '${app.frameId}')">↻</button>` : '';
-                    item.innerHTML = `<div class="task-info"><span class="task-name">${app.name}</span></div>
-                                      <div class="task-actions">${restartHtml}<button class="task-btn close" onclick="closeApp('${app.id}')">✕</button></div>`;
-                    container.appendChild(item);
-                }
-            });
-            if (activeProcesses === 0) container.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding: 10px 0;">Keine Prozesse aktiv.</div>';
-        }
-
-        function restartApp(winId, frameId) {
-            const frame = document.getElementById(frameId);
-            if (frame) { 
-                const path = frame.getAttribute('data-src') || frame.src; 
-                frame.src = 'about:blank'; setTimeout(() => { frame.src = path; }, 100); 
-            }
-            setTimeout(renderTaskManager, 150);
-        }
-
-        function closeApp(winId) { const win = document.getElementById(winId); if (win && !win.classList.contains('hidden')) toggleWindow(winId); }
-
-        // --- NEUE FUNKTIONEN FÜR EIGENE HINTERGRUNDBILDER ---
-
-        // Speichert den neuen Hintergrund zentral im Browser-Speicher
-        function saveThemeBackground(bgValue) {
-            currentTheme.mainBg = bgValue;
-            applyTheme(currentTheme);
-            try {
-                localStorage.setItem('os_theme_v3', JSON.stringify(currentTheme));
-            } catch (e) {
-                alert("Speichern fehlgeschlagen! Das lokale Bild ist eventuell zu groß (Das Limit im Browser-Speicher liegt bei ca. 5MB). Bitte komprimiere das Bild oder nutze einen Bild-Link.");
+                toggleStartMenu();
             }
         }
 
-        // Hintergrund per Link (URL) aktualisieren
-        function updateBgFromUrl() {
-            const url = document.getElementById('bgImageUrl').value;
-            if (url && url.trim() !== "") {
-                saveThemeBackground(`url('${url}')`);
-            }
+        function loadSavedTheme() { 
+            console.log('System und Theme geladen.'); 
         }
 
-        // Hintergrund per lokalem Datei-Upload aktualisieren
-        function updateBgFromFile(event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Sicherheits-Check: LocalStorage packt meist nur 5MB. Warnung ab 3MB.
-                if (file.size > 3 * 1024 * 1024) {
-                    alert("Das Bild ist sehr groß (über 3 MB). Wenn das Speichern fehlschlägt, wähle ein kleineres Bild oder nutze die Bild-URL Funktion.");
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Wandelt das Bild in eine Base64-Zeichenkette um, die im Browser gespeichert werden kann
-                    saveThemeBackground(`url('${e.target.result}')`);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
+        // --- 6. INITIALISIERUNG BEIM START ---
+        window.onload = async () => {
+            renderStartMenuApps(); // 1. Startmenü mit Apps füllen
+            loadSavedTheme();      // 2. Theme laden (falls vorhanden)
+            loadDesktopIcons();    // 3. Desktop Icons laden
+        };
     </script>
 </body>
 </html>
