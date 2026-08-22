@@ -73,7 +73,7 @@
         }
         .icon-text { font-size: 0.82rem; font-weight: 500; text-align: center; word-break: break-word; pointer-events: none; line-height: 1.2; }
 
-        /* NEU: Startmenü */
+        /* Startmenü */
         .start-menu {
             position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
             width: 320px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
@@ -103,7 +103,6 @@
         }
         .dock-item:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-2px); }
         
-        /* NEU: Home Button & Divider */
         .home-btn { font-size: 1.2rem; padding: 8px 12px; }
         .dock-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.15); margin: 0 4px; }
 
@@ -198,7 +197,7 @@
 
     <div class="desktop" id="desktopGrid" onclick="closeStartMenu()"></div>
 
-    <!-- NEU: Startmenü -->
+    <!-- Startmenü -->
     <div class="start-menu hidden" id="startMenu">
         <div class="start-header">Clean OS</div>
         <div class="start-apps">
@@ -211,7 +210,7 @@
         </div>
     </div>
 
-    <!-- Angepasstes Dock -->
+    <!-- Dock -->
     <div class="dock-container" id="dockContainer">
         <button class="dock-item home-btn" onclick="toggleStartMenu()" title="Start"><span class="dock-icon">🏠</span></button>
         <div class="dock-divider"></div>
@@ -231,7 +230,6 @@
 
     <!-- APP WINDOWS -->
     <div class="app-window hidden" id="notesWindow" onclick="closeStartMenu()">
-        <!-- ... (Window content remains same) ... -->
         <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
             <div class="window-title">📝 Notizen</div>
             <div class="window-controls">
@@ -244,6 +242,7 @@
         </div>
     </div>
 
+    <!-- Nativer Explorer (HTML gefixt) -->
     <div class="app-window hidden" id="explorerWindow" onclick="closeStartMenu()">
         <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
             <div class="window-title">📁 Datei-Explorer</div>
@@ -252,8 +251,10 @@
                 <button class="win-btn close" onclick="toggleWindow('explorerWindow')">✕</button>
             </div>
         </div>
-        <div class="window-body" style="padding: 0; display: block;">
-            <iframe id="explorerFrame" src="explorer.html" style="width: 100%; height: 100%; border: none; background: transparent;" allowtransparency="true"></iframe>
+        <div class="window-body" style="padding: 16px; background: rgba(0,0,0,0.3); overflow-y: auto;">
+            <div id="explorerContent" style="display: flex; flex-wrap: wrap; gap: 16px; align-content: flex-start; width: 100%;">
+                <!-- Dateien werden hier per JS geladen -->
+            </div>
         </div>
     </div>
 
@@ -367,7 +368,7 @@
         });
 
 
-        // INDEXEDDB DATABASE FOR LARGE ASSETS (CUSTOM BACKGROUND IMAGES)
+        // INDEXEDDB DATABASE FOR LARGE ASSETS
         function openDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('CleanOSDB', 1);
@@ -580,7 +581,7 @@
             root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
             root.style.setProperty('--accent-color', t.accentColor);
 
-            ['notesFrame', 'explorerFrame'].forEach(id => {
+            ['notesFrame'].forEach(id => {
                 const frame = document.getElementById(id);
                 if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'themeUpdate', theme: t }, '*');
             });
@@ -736,9 +737,14 @@
         }
 
         let actWin = null, oX = 0, oY = 0;
+        
         function toggleWindow(id) { 
             const w = document.getElementById(id);
-            if (w.classList.contains('hidden')) { w.classList.remove('hidden'); bringToFront(w); } 
+            if (w.classList.contains('hidden')) { 
+                w.classList.remove('hidden'); 
+                bringToFront(w);
+                if (id === 'explorerWindow') renderExplorer();
+            } 
             else { w.classList.add('hidden'); }
             const popup = document.getElementById('taskManagerPopup');
             if (popup && !popup.classList.contains('hidden')) renderTaskManager();
@@ -765,17 +771,44 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
+        // Rendert den nativen Datei-Explorer
+        function renderExplorer() {
+            const container = document.getElementById('explorerContent');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const allFiles = JSON.parse(localStorage.getItem('os_vfs_v1') || '[]');
+            
+            if (allFiles.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-sub); width: 100%; text-align: center; padding-top: 40px;">Noch keine Dateien vorhanden.<br>Erstelle eine in der Notizen-App.</div>';
+                return;
+            }
+
+            allFiles.forEach(f => {
+                const el = document.createElement('div');
+                el.style.cssText = 'width: 90px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; padding: 12px; border-radius: 6px; transition: background 0.2s;';
+                el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.1)';
+                el.onmouseout = () => el.style.background = 'transparent';
+                
+                const icon = f.folder === 'desktop' ? '🌐' : '📝';
+                
+                el.innerHTML = `<div style="font-size: 2.2rem;">${icon}</div><div style="font-size: 0.8rem; text-align: center; word-break: break-word; line-height: 1.2;">${f.name}</div>`;
+                el.onclick = () => openFileInNotes(f);
+                container.appendChild(el);
+            });
+        }
+
         window.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'notesReady') applyTheme(currentTheme);
             else if (e.data && e.data.type === 'fileSaved') {
                 loadDesktopIcons();
-                const ex = document.getElementById('explorerFrame');
-                if (ex && ex.contentWindow) ex.contentWindow.postMessage({ type: 'refreshFiles' }, '*');
+                renderExplorer();
                 
                 if (e.data.filename && e.data.content) {
                     writeToLocalFile(e.data.filename, e.data.content);
                 }
             } else if (e.data && e.data.type === 'fileDeleted') {
+                renderExplorer();
                 if (e.data.filename) deleteLocalFile(e.data.filename);
             } else if (e.data && e.data.type === 'openInNotes') openFileInNotes(e.data.file);
         });
@@ -783,7 +816,7 @@
         const systemApps = [
             { id: 'settingsWindow', name: '⚙️ Einstellungen', frameId: null },
             { id: 'notesWindow', name: '📝 Notizen', frameId: 'notesFrame' },
-            { id: 'explorerWindow', name: '📁 Explorer', frameId: 'explorerFrame' }
+            { id: 'explorerWindow', name: '📁 Explorer', frameId: null } // frameId ist null, weil es nativer HTML/JS Inhalt ist
         ];
 
         function toggleTaskManager() {
