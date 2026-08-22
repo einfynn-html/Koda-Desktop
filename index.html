@@ -73,9 +73,28 @@
         }
         .icon-text { font-size: 0.82rem; font-weight: 500; text-align: center; word-break: break-word; pointer-events: none; line-height: 1.2; }
 
+        /* NEU: Startmenü */
+        .start-menu {
+            position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+            width: 320px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
+            backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border);
+            border-radius: 8px; box-shadow: var(--glass-shadow); z-index: 10002;
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .start-menu.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, 15px); }
+        .start-header { padding: 16px; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
+        .start-apps { padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .start-app-btn { background: transparent; border: none; color: var(--text-main); display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; padding: 10px; border-radius: 6px; font-size: 0.8rem; transition: background 0.2s; }
+        .start-app-btn:hover { background: rgba(255,255,255,0.1); }
+        .start-app-btn span { font-size: 1.8rem; }
+        .start-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; background: rgba(0,0,0,0.1); }
+        .start-action-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); cursor: pointer; font-size: 0.85rem; padding: 6px 14px; border-radius: 4px; transition: background 0.2s; }
+        .start-action-btn:hover { background: #ef4444; border-color: #ef4444; }
+
         .dock-container {
             position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 8px; padding: 8px 14px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
+            display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(var(--glass-base-rgb), var(--glass-opacity));
             backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: 6px; z-index: 10000;
         }
         .dock-item {
@@ -83,6 +102,10 @@
             border: 1px solid transparent; background: transparent; color: var(--text-main); font-size: 0.95rem; cursor: pointer;
         }
         .dock-item:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-2px); }
+        
+        /* NEU: Home Button & Divider */
+        .home-btn { font-size: 1.2rem; padding: 8px 12px; }
+        .dock-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.15); margin: 0 4px; }
 
         .app-window {
             position: absolute; width: 880px; height: 600px; top: 80px; left: 150px;
@@ -173,9 +196,25 @@
         <div id="date">Laden...</div>
     </div>
 
-    <div class="desktop" id="desktopGrid"></div>
+    <div class="desktop" id="desktopGrid" onclick="closeStartMenu()"></div>
 
-    <div class="dock-container">
+    <!-- NEU: Startmenü -->
+    <div class="start-menu hidden" id="startMenu">
+        <div class="start-header">Clean OS</div>
+        <div class="start-apps">
+            <button class="start-app-btn" onclick="openApp('settingsWindow')"><span>⚙️</span> Einstellungen</button>
+            <button class="start-app-btn" onclick="openApp('notesWindow')"><span>📝</span> Notizen</button>
+            <button class="start-app-btn" onclick="openApp('explorerWindow')"><span>📁</span> Explorer</button>
+        </div>
+        <div class="start-footer">
+            <button class="start-action-btn" onclick="lockSystem()">🔒 Sperren</button>
+        </div>
+    </div>
+
+    <!-- Angepasstes Dock -->
+    <div class="dock-container" id="dockContainer">
+        <button class="dock-item home-btn" onclick="toggleStartMenu()" title="Start"><span class="dock-icon">🏠</span></button>
+        <div class="dock-divider"></div>
         <button class="dock-item" onclick="toggleWindow('settingsWindow')"><span class="dock-icon">⚙️</span> Settings</button>
         <button class="dock-item" onclick="toggleWindow('notesWindow')"><span class="dock-icon">📝</span> Notes</button>
         <button class="dock-item" onclick="toggleWindow('explorerWindow')"><span class="dock-icon">📁</span> Explorer</button>
@@ -191,7 +230,8 @@
     </div>
 
     <!-- APP WINDOWS -->
-    <div class="app-window hidden" id="notesWindow">
+    <div class="app-window hidden" id="notesWindow" onclick="closeStartMenu()">
+        <!-- ... (Window content remains same) ... -->
         <div class="window-header" onmousedown="startDrag(event, 'notesWindow')">
             <div class="window-title">📝 Notizen</div>
             <div class="window-controls">
@@ -204,7 +244,7 @@
         </div>
     </div>
 
-    <div class="app-window hidden" id="explorerWindow">
+    <div class="app-window hidden" id="explorerWindow" onclick="closeStartMenu()">
         <div class="window-header" onmousedown="startDrag(event, 'explorerWindow')">
             <div class="window-title">📁 Datei-Explorer</div>
             <div class="window-controls">
@@ -217,7 +257,7 @@
         </div>
     </div>
 
-    <div class="app-window hidden" id="settingsWindow">
+    <div class="app-window hidden" id="settingsWindow" onclick="closeStartMenu()">
         <div class="window-header" onmousedown="startDrag(event, 'settingsWindow')">
             <div class="window-title">⚙️ System-Einstellungen</div>
             <div class="window-controls">
@@ -289,6 +329,44 @@
     </div>
 
     <script>
+        // Startmenü Funktionen
+        function toggleStartMenu() {
+            const menu = document.getElementById('startMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function closeStartMenu() {
+            const menu = document.getElementById('startMenu');
+            if (!menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        }
+
+        function openApp(id) {
+            const win = document.getElementById(id);
+            if (win.classList.contains('hidden')) { toggleWindow(id); }
+            else { bringToFront(win); }
+            closeStartMenu();
+        }
+
+        function lockSystem() {
+            closeStartMenu();
+            document.getElementById('loginPwd').value = '';
+            const screen = document.getElementById('loginScreen');
+            screen.style.display = 'flex';
+            setTimeout(() => { screen.style.opacity = '1'; }, 50);
+        }
+
+        // Event Listener für Klick außerhalb des Startmenüs/Docks
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('startMenu');
+            const dock = document.getElementById('dockContainer');
+            if (!menu.contains(e.target) && !dock.contains(e.target) && !menu.classList.contains('hidden')) {
+                closeStartMenu();
+            }
+        });
+
+
         // INDEXEDDB DATABASE FOR LARGE ASSETS (CUSTOM BACKGROUND IMAGES)
         function openDB() {
             return new Promise((resolve, reject) => {
